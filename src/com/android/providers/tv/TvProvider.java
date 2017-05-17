@@ -147,7 +147,7 @@ public class TvProvider extends ContentProvider {
     private static final Map<String, String> sRecordedProgramProjectionMap;
     private static final Map<String, String> sPreviewProgramProjectionMap;
     private static final Map<String, String> sWatchNextProgramProjectionMap;
-    private static boolean sProjectionMapsUpdated;
+    private static boolean sInitialized;
 
     static {
         sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
@@ -970,26 +970,27 @@ public class TvProvider extends ContentProvider {
 
         @Override
         public void onOpen(SQLiteDatabase db) {
-            buildProjectionMap(db);
-            sBlockedPackagesSharedPreference = PreferenceManager.getDefaultSharedPreferences(
-                    mContext);
-            sBlockedPackages = new ConcurrentHashMap<>();
-            for (String packageName : sBlockedPackagesSharedPreference.getStringSet(
-                    SHARED_PREF_BLOCKED_PACKAGES_KEY, new HashSet<>())) {
-                sBlockedPackages.put(packageName, true);
+            // This method is thread-safe. It's guaranteed by the implementation of SQLiteOpenHelper
+            if (!sInitialized) {
+                buildProjectionMap(db);
+                sBlockedPackagesSharedPreference = PreferenceManager.getDefaultSharedPreferences(
+                        mContext);
+                sBlockedPackages = new ConcurrentHashMap<>();
+                for (String packageName : sBlockedPackagesSharedPreference.getStringSet(
+                        SHARED_PREF_BLOCKED_PACKAGES_KEY, new HashSet<>())) {
+                    sBlockedPackages.put(packageName, true);
+                }
+                sInitialized = true;
             }
         }
 
         private void buildProjectionMap(SQLiteDatabase db) {
-            if (!sProjectionMapsUpdated) {
-                updateProjectionMap(db, CHANNELS_TABLE, sChannelProjectionMap);
-                updateProjectionMap(db, PROGRAMS_TABLE, sProgramProjectionMap);
-                updateProjectionMap(db, WATCHED_PROGRAMS_TABLE, sWatchedProgramProjectionMap);
-                updateProjectionMap(db, RECORDED_PROGRAMS_TABLE, sRecordedProgramProjectionMap);
-                updateProjectionMap(db, PREVIEW_PROGRAMS_TABLE, sPreviewProgramProjectionMap);
-                updateProjectionMap(db, WATCH_NEXT_PROGRAMS_TABLE, sWatchNextProgramProjectionMap);
-                sProjectionMapsUpdated = true;
-            }
+            updateProjectionMap(db, CHANNELS_TABLE, sChannelProjectionMap);
+            updateProjectionMap(db, PROGRAMS_TABLE, sProgramProjectionMap);
+            updateProjectionMap(db, WATCHED_PROGRAMS_TABLE, sWatchedProgramProjectionMap);
+            updateProjectionMap(db, RECORDED_PROGRAMS_TABLE, sRecordedProgramProjectionMap);
+            updateProjectionMap(db, PREVIEW_PROGRAMS_TABLE, sPreviewProgramProjectionMap);
+            updateProjectionMap(db, WATCH_NEXT_PROGRAMS_TABLE, sWatchNextProgramProjectionMap);
         }
 
         private void updateProjectionMap(SQLiteDatabase db, String tableName,
@@ -1129,11 +1130,7 @@ public class TvProvider extends ContentProvider {
         if (!callerHasAccessAllEpgDataPermission()) {
             return null;
         }
-        if (!sProjectionMapsUpdated) {
-            // Database is not accessed before and the projection maps are not updated yet.
-            // Gets database here to make it initialized.
-            mOpenHelper.getReadableDatabase().close();
-        }
+        ensureInitialized();
         Map<String, String> projectionMap;
         switch (method) {
             case TvContract.METHOD_GET_COLUMNS:
@@ -1273,6 +1270,7 @@ public class TvProvider extends ContentProvider {
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
             String sortOrder) {
+        ensureInitialized();
         mTransientRowHelper.ensureOldTransientRowsDeleted();
         boolean needsToValidateSortOrder = !callerHasAccessAllEpgDataPermission();
         SqlParams params = createSqlParams(OP_QUERY, uri, selection, selectionArgs);
@@ -1326,6 +1324,7 @@ public class TvProvider extends ContentProvider {
 
     @Override
     public Uri insert(Uri uri, ContentValues values) {
+        ensureInitialized();
         mTransientRowHelper.ensureOldTransientRowsDeleted();
         switch (sUriMatcher.match(uri)) {
             case MATCH_CHANNEL:
@@ -1585,6 +1584,14 @@ public class TvProvider extends ContentProvider {
         return count;
     }
 
+    private synchronized void ensureInitialized() {
+        if (!sInitialized) {
+            // Database is not accessed before and the projection maps and the blocked package list
+            // are not updated yet. Gets database here to make it initialized.
+            mOpenHelper.getReadableDatabase().close();
+        }
+    }
+
     private Map<String, String> createProjectionMapForQuery(String[] projection,
             Map<String, String> projectionMap) {
         if (projection == null) {
@@ -1616,6 +1623,7 @@ public class TvProvider extends ContentProvider {
 
         // Control access to EPG data (excluding watched programs) when the caller doesn't have all
         // access.
+        String prefix = match == MATCH_CHANNEL ? CHANNELS_TABLE + "." : "";
         if (!callerHasAccessAllEpgDataPermission()
                 && match != MATCH_WATCHED_PROGRAM && match != MATCH_WATCHED_PROGRAM_ID) {
             if (!TextUtils.isEmpty(selection)) {
@@ -1623,7 +1631,6 @@ public class TvProvider extends ContentProvider {
             }
             // Limit the operation only to the data that the calling package owns except for when
             // the caller tries to read TV listings and has the appropriate permission.
-            String prefix = match == MATCH_CHANNEL ? CHANNELS_TABLE + "." : "";
             if (operation.equals(OP_QUERY) && callerHasReadTvListingsPermission()) {
                 params.setWhere(prefix + BaseTvColumns.COLUMN_PACKAGE_NAME + "=? OR "
                         + Channels.COLUMN_SEARCHABLE + "=?", getCallingPackage_(), "1");
@@ -1631,6 +1638,10 @@ public class TvProvider extends ContentProvider {
                 params.setWhere(prefix + BaseTvColumns.COLUMN_PACKAGE_NAME + "=?",
                         getCallingPackage_());
             }
+        }
+        String packageName = uri.getQueryParameter(TvContract.PARAM_PACKAGE);
+        if (packageName != null) {
+            params.appendWhere(prefix + BaseTvColumns.COLUMN_PACKAGE_NAME + "=?", packageName);
         }
 
         switch (match) {
