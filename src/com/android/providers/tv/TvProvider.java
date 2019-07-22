@@ -1612,9 +1612,23 @@ public class TvProvider extends ContentProvider {
                 // database.
                 value = "NULL AS " + DatabaseUtils.sqlEscapeString(columnName);
                 columnProjectionMap.put(columnName, value);
+
+                if (needEventLog(columnName)) {
+                    android.util.EventLog.writeEvent(0x534e4554, "135269669", -1, "");
+                }
             }
         }
         return columnProjectionMap;
+    }
+
+    private boolean needEventLog(String columnName) {
+        for (int i = 0; i < columnName.length(); i++) {
+            char c = columnName.charAt(i);
+            if (!Character.isLetterOrDigit(c) && c != '_') {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void filterContentValues(ContentValues values, Map<String, String> projectionMap) {
