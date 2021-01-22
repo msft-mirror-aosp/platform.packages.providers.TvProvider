@@ -1045,7 +1045,7 @@ public class TvProvider extends ContentProvider {
                         + RecordedPrograms.COLUMN_SPLIT_ID + " TEXT;");
                 db.execSQL("ALTER TABLE " + PREVIEW_PROGRAMS_TABLE + " ADD "
                         + PreviewPrograms.COLUMN_SPLIT_ID + " TEXT;");
-                db.execSQL("ALTER TABLE " + WATCHED_PROGRAMS_TABLE + " ADD "
+                db.execSQL("ALTER TABLE " + WATCH_NEXT_PROGRAMS_TABLE + " ADD "
                         + WatchNextPrograms.COLUMN_SPLIT_ID + " TEXT;");
             }
             if (oldVersion <= 36) {
