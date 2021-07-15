@@ -1033,20 +1033,41 @@ public class TvProvider extends ContentProvider {
                 }
             }
             if (oldVersion <= 35) {
-                db.execSQL("ALTER TABLE " + CHANNELS_TABLE + " ADD "
-                        + Channels.COLUMN_GLOBAL_CONTENT_ID + " TEXT;");
-                db.execSQL("ALTER TABLE " + PROGRAMS_TABLE + " ADD "
-                        + Programs.COLUMN_EVENT_ID + " INTEGER NOT NULL DEFAULT 0;");
-                db.execSQL("ALTER TABLE " + PROGRAMS_TABLE + " ADD "
-                        + Programs.COLUMN_GLOBAL_CONTENT_ID + " TEXT;");
-                db.execSQL("ALTER TABLE " + PROGRAMS_TABLE + " ADD "
-                        + Programs.COLUMN_SPLIT_ID + " TEXT;");
-                db.execSQL("ALTER TABLE " + RECORDED_PROGRAMS_TABLE + " ADD "
-                        + RecordedPrograms.COLUMN_SPLIT_ID + " TEXT;");
-                db.execSQL("ALTER TABLE " + PREVIEW_PROGRAMS_TABLE + " ADD "
-                        + PreviewPrograms.COLUMN_SPLIT_ID + " TEXT;");
-                db.execSQL("ALTER TABLE " + WATCH_NEXT_PROGRAMS_TABLE + " ADD "
-                        + WatchNextPrograms.COLUMN_SPLIT_ID + " TEXT;");
+                if (!getColumnNames(db, CHANNELS_TABLE)
+                        .contains(Channels.COLUMN_GLOBAL_CONTENT_ID)) {
+                    db.execSQL("ALTER TABLE " + CHANNELS_TABLE + " ADD "
+                            + Channels.COLUMN_GLOBAL_CONTENT_ID+ " TEXT;");
+                }
+                if (!getColumnNames(db, PROGRAMS_TABLE)
+                        .contains(Programs.COLUMN_EVENT_ID)) {
+                    db.execSQL("ALTER TABLE " + PROGRAMS_TABLE + " ADD "
+                            + Programs.COLUMN_EVENT_ID + " INTEGER NOT NULL DEFAULT 0;");
+                }
+                if (!getColumnNames(db, PROGRAMS_TABLE)
+                        .contains(Programs.COLUMN_GLOBAL_CONTENT_ID)) {
+                    db.execSQL("ALTER TABLE " + PROGRAMS_TABLE + " ADD "
+                            + Programs.COLUMN_GLOBAL_CONTENT_ID + " TEXT;");
+                }
+                if (!getColumnNames(db, PROGRAMS_TABLE)
+                        .contains(Programs.COLUMN_SPLIT_ID)) {
+                    db.execSQL("ALTER TABLE " + PROGRAMS_TABLE + " ADD "
+                            + Programs.COLUMN_SPLIT_ID + " TEXT;");
+                }
+                if (!getColumnNames(db, RECORDED_PROGRAMS_TABLE)
+                        .contains(RecordedPrograms.COLUMN_SPLIT_ID)) {
+                    db.execSQL("ALTER TABLE " + RECORDED_PROGRAMS_TABLE + " ADD "
+                            + RecordedPrograms.COLUMN_SPLIT_ID + " TEXT;");
+                }
+                if (!getColumnNames(db, PREVIEW_PROGRAMS_TABLE)
+                        .contains(PreviewPrograms.COLUMN_SPLIT_ID)) {
+                    db.execSQL("ALTER TABLE " + PREVIEW_PROGRAMS_TABLE + " ADD "
+                            + PreviewPrograms.COLUMN_SPLIT_ID + " TEXT;");
+                }
+                if (!getColumnNames(db, WATCH_NEXT_PROGRAMS_TABLE)
+                        .contains(WatchNextPrograms.COLUMN_SPLIT_ID)) {
+                    db.execSQL("ALTER TABLE " + WATCH_NEXT_PROGRAMS_TABLE + " ADD "
+                            + WatchNextPrograms.COLUMN_SPLIT_ID + " TEXT;");
+                }
             }
             if (oldVersion <= 36) {
                 db.execSQL("ALTER TABLE " + CHANNELS_TABLE + " ADD "
