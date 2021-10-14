@@ -89,7 +89,7 @@ public class TvProvider extends ContentProvider {
     private static final boolean DEBUG = false;
     private static final String TAG = "TvProvider";
 
-    static final int DATABASE_VERSION = 37;
+    static final int DATABASE_VERSION = 38;
     static final String SHARED_PREF_BLOCKED_PACKAGES_KEY = "blocked_packages";
     static final String CHANNELS_TABLE = "channels";
     static final String PROGRAMS_TABLE = "programs";
@@ -502,6 +502,10 @@ public class TvProvider extends ContentProvider {
                 PreviewPrograms.COLUMN_CONTENT_ID);
         sPreviewProgramProjectionMap.put(PreviewPrograms.COLUMN_SPLIT_ID,
                 PreviewPrograms.COLUMN_SPLIT_ID);
+        sPreviewProgramProjectionMap.put(PreviewPrograms.COLUMN_START_TIME_UTC_MILLIS,
+                PreviewPrograms.COLUMN_START_TIME_UTC_MILLIS);
+        sPreviewProgramProjectionMap.put(PreviewPrograms.COLUMN_END_TIME_UTC_MILLIS,
+                PreviewPrograms.COLUMN_END_TIME_UTC_MILLIS);
 
         sWatchNextProgramProjectionMap.clear();
         sWatchNextProgramProjectionMap.put(WatchNextPrograms._ID, WatchNextPrograms._ID);
@@ -602,6 +606,10 @@ public class TvProvider extends ContentProvider {
                 WatchNextPrograms.COLUMN_LAST_ENGAGEMENT_TIME_UTC_MILLIS);
         sWatchNextProgramProjectionMap.put(WatchNextPrograms.COLUMN_SPLIT_ID,
                 WatchNextPrograms.COLUMN_SPLIT_ID);
+        sWatchNextProgramProjectionMap.put(WatchNextPrograms.COLUMN_START_TIME_UTC_MILLIS,
+                PreviewPrograms.COLUMN_START_TIME_UTC_MILLIS);
+        sWatchNextProgramProjectionMap.put(WatchNextPrograms.COLUMN_END_TIME_UTC_MILLIS,
+                PreviewPrograms.COLUMN_END_TIME_UTC_MILLIS);
     }
 
     // Mapping from broadcast genre to canonical genre.
@@ -708,6 +716,8 @@ public class TvProvider extends ContentProvider {
             + PreviewPrograms.COLUMN_BROWSABLE + " INTEGER NOT NULL DEFAULT 1,"
             + PreviewPrograms.COLUMN_CONTENT_ID + " TEXT,"
             + PreviewPrograms.COLUMN_SPLIT_ID + " TEXT,"
+            + PreviewPrograms.COLUMN_START_TIME_UTC_MILLIS + " INTEGER,"
+            + PreviewPrograms.COLUMN_END_TIME_UTC_MILLIS + " INTEGER,"
             + "FOREIGN KEY("
                     + PreviewPrograms.COLUMN_CHANNEL_ID + "," + PreviewPrograms.COLUMN_PACKAGE_NAME
                     + ") REFERENCES " + CHANNELS_TABLE + "("
@@ -770,7 +780,9 @@ public class TvProvider extends ContentProvider {
             + WatchNextPrograms.COLUMN_BROWSABLE + " INTEGER NOT NULL DEFAULT 1,"
             + WatchNextPrograms.COLUMN_CONTENT_ID + " TEXT,"
             + WatchNextPrograms.COLUMN_LAST_ENGAGEMENT_TIME_UTC_MILLIS + " INTEGER,"
-            + WatchNextPrograms.COLUMN_SPLIT_ID + " TEXT"
+            + WatchNextPrograms.COLUMN_SPLIT_ID + " TEXT,"
+            + WatchNextPrograms.COLUMN_START_TIME_UTC_MILLIS + " INTEGER,"
+            + WatchNextPrograms.COLUMN_END_TIME_UTC_MILLIS + " INTEGER"
             + ");";
     private static final String CREATE_WATCH_NEXT_PROGRAMS_PACKAGE_NAME_INDEX_SQL =
             "CREATE INDEX watch_next_programs_package_name_index ON " + WATCH_NEXT_PROGRAMS_TABLE
@@ -1033,20 +1045,41 @@ public class TvProvider extends ContentProvider {
                 }
             }
             if (oldVersion <= 35) {
-                db.execSQL("ALTER TABLE " + CHANNELS_TABLE + " ADD "
-                        + Channels.COLUMN_GLOBAL_CONTENT_ID + " TEXT;");
-                db.execSQL("ALTER TABLE " + PROGRAMS_TABLE + " ADD "
-                        + Programs.COLUMN_EVENT_ID + " INTEGER NOT NULL DEFAULT 0;");
-                db.execSQL("ALTER TABLE " + PROGRAMS_TABLE + " ADD "
-                        + Programs.COLUMN_GLOBAL_CONTENT_ID + " TEXT;");
-                db.execSQL("ALTER TABLE " + PROGRAMS_TABLE + " ADD "
-                        + Programs.COLUMN_SPLIT_ID + " TEXT;");
-                db.execSQL("ALTER TABLE " + RECORDED_PROGRAMS_TABLE + " ADD "
-                        + RecordedPrograms.COLUMN_SPLIT_ID + " TEXT;");
-                db.execSQL("ALTER TABLE " + PREVIEW_PROGRAMS_TABLE + " ADD "
-                        + PreviewPrograms.COLUMN_SPLIT_ID + " TEXT;");
-                db.execSQL("ALTER TABLE " + WATCH_NEXT_PROGRAMS_TABLE + " ADD "
-                        + WatchNextPrograms.COLUMN_SPLIT_ID + " TEXT;");
+                if (!getColumnNames(db, CHANNELS_TABLE)
+                        .contains(Channels.COLUMN_GLOBAL_CONTENT_ID)) {
+                    db.execSQL("ALTER TABLE " + CHANNELS_TABLE + " ADD "
+                            + Channels.COLUMN_GLOBAL_CONTENT_ID+ " TEXT;");
+                }
+                if (!getColumnNames(db, PROGRAMS_TABLE)
+                        .contains(Programs.COLUMN_EVENT_ID)) {
+                    db.execSQL("ALTER TABLE " + PROGRAMS_TABLE + " ADD "
+                            + Programs.COLUMN_EVENT_ID + " INTEGER NOT NULL DEFAULT 0;");
+                }
+                if (!getColumnNames(db, PROGRAMS_TABLE)
+                        .contains(Programs.COLUMN_GLOBAL_CONTENT_ID)) {
+                    db.execSQL("ALTER TABLE " + PROGRAMS_TABLE + " ADD "
+                            + Programs.COLUMN_GLOBAL_CONTENT_ID + " TEXT;");
+                }
+                if (!getColumnNames(db, PROGRAMS_TABLE)
+                        .contains(Programs.COLUMN_SPLIT_ID)) {
+                    db.execSQL("ALTER TABLE " + PROGRAMS_TABLE + " ADD "
+                            + Programs.COLUMN_SPLIT_ID + " TEXT;");
+                }
+                if (!getColumnNames(db, RECORDED_PROGRAMS_TABLE)
+                        .contains(RecordedPrograms.COLUMN_SPLIT_ID)) {
+                    db.execSQL("ALTER TABLE " + RECORDED_PROGRAMS_TABLE + " ADD "
+                            + RecordedPrograms.COLUMN_SPLIT_ID + " TEXT;");
+                }
+                if (!getColumnNames(db, PREVIEW_PROGRAMS_TABLE)
+                        .contains(PreviewPrograms.COLUMN_SPLIT_ID)) {
+                    db.execSQL("ALTER TABLE " + PREVIEW_PROGRAMS_TABLE + " ADD "
+                            + PreviewPrograms.COLUMN_SPLIT_ID + " TEXT;");
+                }
+                if (!getColumnNames(db, WATCH_NEXT_PROGRAMS_TABLE)
+                        .contains(WatchNextPrograms.COLUMN_SPLIT_ID)) {
+                    db.execSQL("ALTER TABLE " + WATCH_NEXT_PROGRAMS_TABLE + " ADD "
+                            + WatchNextPrograms.COLUMN_SPLIT_ID + " TEXT;");
+                }
             }
             if (oldVersion <= 36) {
                 db.execSQL("ALTER TABLE " + CHANNELS_TABLE + " ADD "
@@ -1059,6 +1092,28 @@ public class TvProvider extends ContentProvider {
                            + Channels.COLUMN_CHANNEL_LIST_ID + " TEXT;");
                 db.execSQL("ALTER TABLE " + CHANNELS_TABLE + " ADD "
                            + Channels.COLUMN_BROADCAST_GENRE + " TEXT;");
+            }
+            if (oldVersion <= 37) {
+                if (!getColumnNames(db, PREVIEW_PROGRAMS_TABLE)
+                        .contains(PreviewPrograms.COLUMN_START_TIME_UTC_MILLIS)) {
+                    db.execSQL("ALTER TABLE " + PREVIEW_PROGRAMS_TABLE + " ADD "
+                            + PreviewPrograms.COLUMN_START_TIME_UTC_MILLIS + " INTEGER;");
+                }
+                if (!getColumnNames(db, PREVIEW_PROGRAMS_TABLE)
+                        .contains(PreviewPrograms.COLUMN_END_TIME_UTC_MILLIS)) {
+                    db.execSQL("ALTER TABLE " + PREVIEW_PROGRAMS_TABLE + " ADD "
+                            + PreviewPrograms.COLUMN_END_TIME_UTC_MILLIS + " INTEGER;");
+                }
+                if (!getColumnNames(db, WATCH_NEXT_PROGRAMS_TABLE)
+                        .contains(WatchNextPrograms.COLUMN_START_TIME_UTC_MILLIS)) {
+                    db.execSQL("ALTER TABLE " + WATCH_NEXT_PROGRAMS_TABLE + " ADD "
+                            + WatchNextPrograms.COLUMN_START_TIME_UTC_MILLIS + " INTEGER;");
+                }
+                if (!getColumnNames(db, WATCH_NEXT_PROGRAMS_TABLE)
+                        .contains(WatchNextPrograms.COLUMN_END_TIME_UTC_MILLIS)) {
+                    db.execSQL("ALTER TABLE " + WATCH_NEXT_PROGRAMS_TABLE + " ADD "
+                            + WatchNextPrograms.COLUMN_END_TIME_UTC_MILLIS + " INTEGER;");
+                }
             }
             Log.i(TAG, "Upgrading from version " + oldVersion + " to " + newVersion + " is done.");
         }
@@ -1126,8 +1181,8 @@ public class TvProvider extends ContentProvider {
     void scheduleEpgDataCleanup() {
         Intent intent = new Intent(EpgDataCleanupService.ACTION_CLEAN_UP_EPG_DATA);
         intent.setClass(getContext(), EpgDataCleanupService.class);
-        PendingIntent pendingIntent = PendingIntent.getService(
-                getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pendingIntent = PendingIntent.getService(getContext(), 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         AlarmManager alarmManager =
                 (AlarmManager) getContext().getSystemService(Context.ALARM_SERVICE);
         alarmManager.setInexactRepeating(AlarmManager.RTC, System.currentTimeMillis(),
