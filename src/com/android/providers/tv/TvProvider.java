@@ -89,7 +89,7 @@ public class TvProvider extends ContentProvider {
     private static final boolean DEBUG = false;
     private static final String TAG = "TvProvider";
 
-    static final int DATABASE_VERSION = 38;
+    static final int DATABASE_VERSION = 39;
     static final String SHARED_PREF_BLOCKED_PACKAGES_KEY = "blocked_packages";
     static final String CHANNELS_TABLE = "channels";
     static final String PROGRAMS_TABLE = "programs";
@@ -301,12 +301,18 @@ public class TvProvider extends ContentProvider {
         sProgramProjectionMap.put(Programs.COLUMN_REVIEW_RATING,
                 Programs.COLUMN_REVIEW_RATING);
         sProgramProjectionMap.put(PROGRAMS_COLUMN_SERIES_ID, PROGRAMS_COLUMN_SERIES_ID);
+        sProgramProjectionMap.put(Programs.COLUMN_MULTI_SERIES_ID,
+                Programs.COLUMN_MULTI_SERIES_ID);
         sProgramProjectionMap.put(Programs.COLUMN_EVENT_ID,
                 Programs.COLUMN_EVENT_ID);
         sProgramProjectionMap.put(Programs.COLUMN_GLOBAL_CONTENT_ID,
                 Programs.COLUMN_GLOBAL_CONTENT_ID);
         sProgramProjectionMap.put(Programs.COLUMN_SPLIT_ID,
                 Programs.COLUMN_SPLIT_ID);
+        sProgramProjectionMap.put(Programs.COLUMN_SCRAMBLED,
+                Programs.COLUMN_SCRAMBLED);
+        sProgramProjectionMap.put(Programs.COLUMN_INTERNAL_PROVIDER_ID,
+                Programs.COLUMN_INTERNAL_PROVIDER_ID);
 
         sWatchedProgramProjectionMap.clear();
         sWatchedProgramProjectionMap.put(WatchedPrograms._ID, WatchedPrograms._ID);
@@ -402,8 +408,12 @@ public class TvProvider extends ContentProvider {
         sRecordedProgramProjectionMap.put(RecordedPrograms.COLUMN_REVIEW_RATING,
                 RecordedPrograms.COLUMN_REVIEW_RATING);
         sRecordedProgramProjectionMap.put(PROGRAMS_COLUMN_SERIES_ID, PROGRAMS_COLUMN_SERIES_ID);
+        sRecordedProgramProjectionMap.put(RecordedPrograms.COLUMN_MULTI_SERIES_ID,
+                RecordedPrograms.COLUMN_MULTI_SERIES_ID);
         sRecordedProgramProjectionMap.put(RecordedPrograms.COLUMN_SPLIT_ID,
                 RecordedPrograms.COLUMN_SPLIT_ID);
+        sRecordedProgramProjectionMap.put(RecordedPrograms.COLUMN_INTERNAL_PROVIDER_ID,
+                RecordedPrograms.COLUMN_INTERNAL_PROVIDER_ID);
 
         sPreviewProgramProjectionMap.clear();
         sPreviewProgramProjectionMap.put(PreviewPrograms._ID, PreviewPrograms._ID);
@@ -660,7 +670,9 @@ public class TvProvider extends ContentProvider {
             + RecordedPrograms.COLUMN_REVIEW_RATING_STYLE + " INTEGER,"
             + RecordedPrograms.COLUMN_REVIEW_RATING + " TEXT,"
             + PROGRAMS_COLUMN_SERIES_ID + " TEXT,"
+            + RecordedPrograms.COLUMN_MULTI_SERIES_ID + " TEXT,"
             + RecordedPrograms.COLUMN_SPLIT_ID + " TEXT,"
+            + RecordedPrograms.COLUMN_INTERNAL_PROVIDER_ID + " TEXT,"
             + "FOREIGN KEY(" + RecordedPrograms.COLUMN_CHANNEL_ID + ") "
                     + "REFERENCES " + CHANNELS_TABLE + "(" + Channels._ID + ") "
                     + "ON UPDATE CASCADE ON DELETE SET NULL);";
@@ -894,9 +906,12 @@ public class TvProvider extends ContentProvider {
                     + Programs.COLUMN_REVIEW_RATING + " TEXT,"
                     + Programs.COLUMN_VERSION_NUMBER + " INTEGER,"
                     + PROGRAMS_COLUMN_SERIES_ID + " TEXT,"
+                    + Programs.COLUMN_MULTI_SERIES_ID + " TEXT,"
                     + Programs.COLUMN_EVENT_ID + " INTEGER NOT NULL DEFAULT 0,"
                     + Programs.COLUMN_GLOBAL_CONTENT_ID + " TEXT,"
                     + Programs.COLUMN_SPLIT_ID + " TEXT,"
+                    + Programs.COLUMN_SCRAMBLED + " INTEGER NOT NULL DEFAULT 0,"
+                    + Programs.COLUMN_INTERNAL_PROVIDER_ID + " TEXT,"
                     + "FOREIGN KEY("
                             + Programs.COLUMN_CHANNEL_ID + "," + Programs.COLUMN_PACKAGE_NAME
                             + ") REFERENCES " + CHANNELS_TABLE + "("
@@ -1113,6 +1128,33 @@ public class TvProvider extends ContentProvider {
                         .contains(WatchNextPrograms.COLUMN_END_TIME_UTC_MILLIS)) {
                     db.execSQL("ALTER TABLE " + WATCH_NEXT_PROGRAMS_TABLE + " ADD "
                             + WatchNextPrograms.COLUMN_END_TIME_UTC_MILLIS + " INTEGER;");
+                }
+            }
+            if (oldVersion <= 38) {
+                if (!getColumnNames(db, PROGRAMS_TABLE)
+                        .contains(Programs.COLUMN_SCRAMBLED)) {
+                    db.execSQL("ALTER TABLE " + PROGRAMS_TABLE + " ADD "
+                            + Programs.COLUMN_SCRAMBLED + " INTEGER NOT NULL DEFAULT 0;");
+                }
+                if (!getColumnNames(db, PROGRAMS_TABLE)
+                        .contains(Programs.COLUMN_MULTI_SERIES_ID)) {
+                    db.execSQL("ALTER TABLE " + PROGRAMS_TABLE + " ADD "
+                            + Programs.COLUMN_MULTI_SERIES_ID + " TEXT;");
+                }
+                if (!getColumnNames(db, PROGRAMS_TABLE)
+                        .contains(Programs.COLUMN_INTERNAL_PROVIDER_ID)) {
+                    db.execSQL("ALTER TABLE " + PROGRAMS_TABLE + " ADD "
+                            + Programs.COLUMN_INTERNAL_PROVIDER_ID + " TEXT;");
+                }
+                if (!getColumnNames(db, RECORDED_PROGRAMS_TABLE)
+                        .contains(RecordedPrograms.COLUMN_MULTI_SERIES_ID)) {
+                    db.execSQL("ALTER TABLE " + RECORDED_PROGRAMS_TABLE + " ADD "
+                            + RecordedPrograms.COLUMN_MULTI_SERIES_ID + " TEXT;");
+                }
+                if (!getColumnNames(db, RECORDED_PROGRAMS_TABLE)
+                        .contains(RecordedPrograms.COLUMN_INTERNAL_PROVIDER_ID)) {
+                    db.execSQL("ALTER TABLE " + RECORDED_PROGRAMS_TABLE + " ADD "
+                            + RecordedPrograms.COLUMN_INTERNAL_PROVIDER_ID + " TEXT;");
                 }
             }
             Log.i(TAG, "Upgrading from version " + oldVersion + " to " + newVersion + " is done.");
