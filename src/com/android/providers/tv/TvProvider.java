@@ -1201,7 +1201,11 @@ public class TvProvider extends ContentProvider {
                 new AsyncTask<Void, Void, Void>() {
                     @Override
                     protected Void doInBackground(Void... params) {
-                        deleteUnconsolidatedWatchedProgramsRows();
+                        try {
+                            deleteUnconsolidatedWatchedProgramsRows();
+                        } catch (Exception e) {
+                            Log.e(TAG, "deleteUnconsolidatedWatchedProgramsRows " + e);
+                        }
                         return null;
                     }
                 };
