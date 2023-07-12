@@ -818,7 +818,8 @@ public class TvProvider extends ContentProvider {
 
         @VisibleForTesting
         DatabaseHelper(Context context, String databaseName, int databaseVersion) {
-            super(context, databaseName, null, databaseVersion);
+            super(context, databaseName, databaseVersion,
+                new SQLiteDatabase.OpenParams.Builder().setSynchronousMode("FULL").build());
             mContext = context;
             setWriteAheadLoggingEnabled(true);
         }
