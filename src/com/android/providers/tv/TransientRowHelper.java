@@ -71,11 +71,13 @@ public class TransientRowHelper {
     /**
      * Ensures that transient rows, inserted previously before current boot, are deleted.
      */
-    public synchronized void ensureOldTransientRowsDeleted() {
-        if (mTransientRowsDeleted) {
-            return;
+    public void ensureOldTransientRowsDeleted() {
+        synchronized (this) {
+            if (mTransientRowsDeleted) {
+                return;
+            }
+            mTransientRowsDeleted = true;
         }
-        mTransientRowsDeleted = true;
         if (getLastDeletionBootCount() >= getBootCount()) {
             // This can be the second execution of TvProvider after boot since system kills
             // TvProvider in low memory conditions. If this is the case, we shouldn't delete
