@@ -16,8 +16,6 @@
 
 package com.android.providers.tv;
 
-import com.google.android.collect.Sets;
-
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Intent;
@@ -29,12 +27,12 @@ import android.media.tv.TvContract.Programs;
 import android.media.tv.TvContract.WatchedPrograms;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.provider.Settings;
-import android.test.suitebuilder.annotation.Suppress;
+import android.test.ServiceTestCase;
 import android.test.mock.MockContentProvider;
 import android.test.mock.MockContentResolver;
-import android.test.ServiceTestCase;
+
+import com.google.android.collect.Sets;
 
 import java.util.ArrayList;
 import java.util.Arrays;
