@@ -89,7 +89,7 @@ public class TvProvider extends ContentProvider {
     private static final boolean DEBUG = false;
     private static final String TAG = "TvProvider";
 
-    static final int DATABASE_VERSION = 39;
+    static final int DATABASE_VERSION = 40;
     static final String SHARED_PREF_BLOCKED_PACKAGES_KEY = "blocked_packages";
     static final String CHANNELS_TABLE = "channels";
     static final String PROGRAMS_TABLE = "programs";
@@ -146,7 +146,8 @@ public class TvProvider extends ContentProvider {
 
     private static final String EMPTY_STRING = "";
 
-    private static final long MAX_PROGRAM_DATA_DELAY_IN_MILLIS = 10 * 1000; // 10 seconds
+    private static final long PROGRAM_DATA_START_WATCH_DELAY_IN_MILLIS = 10 * 1000; // 10 seconds
+    private static final long PROGRAM_DATA_END_WATCH_DELAY_IN_MILLIS = 1 * 1000; // 1 second
 
     private static final Map<String, String> sChannelProjectionMap = new HashMap<>();
     private static final Map<String, String> sProgramProjectionMap = new HashMap<>();
@@ -247,6 +248,8 @@ public class TvProvider extends ContentProvider {
                 CHANNELS_TABLE + "." + Channels.COLUMN_CHANNEL_LIST_ID);
         sChannelProjectionMap.put(Channels.COLUMN_BROADCAST_GENRE,
                 CHANNELS_TABLE + "." + Channels.COLUMN_BROADCAST_GENRE);
+        sChannelProjectionMap.put(Channels.COLUMN_BROADCAST_VISIBILITY_TYPE,
+                CHANNELS_TABLE + "." + Channels.COLUMN_BROADCAST_VISIBILITY_TYPE);
 
         sProgramProjectionMap.clear();
         sProgramProjectionMap.put(Programs._ID, Programs._ID);
@@ -817,7 +820,8 @@ public class TvProvider extends ContentProvider {
 
         @VisibleForTesting
         DatabaseHelper(Context context, String databaseName, int databaseVersion) {
-            super(context, databaseName, null, databaseVersion);
+            super(context, databaseName, databaseVersion,
+                new SQLiteDatabase.OpenParams.Builder().setSynchronousMode("FULL").build());
             mContext = context;
             setWriteAheadLoggingEnabled(true);
         }
@@ -871,6 +875,10 @@ public class TvProvider extends ContentProvider {
                     + Channels.COLUMN_VIDEO_RESOLUTION + " TEXT,"
                     + Channels.COLUMN_CHANNEL_LIST_ID + " TEXT,"
                     + Channels.COLUMN_BROADCAST_GENRE + " TEXT,"
+                    + Channels.COLUMN_BROADCAST_VISIBILITY_TYPE
+                            + " INTEGER NOT NULL DEFAULT "
+                            + Channels.BROADCAST_VISIBILITY_TYPE_VISIBLE
+                            + ","
                     // Needed for foreign keys in other tables.
                     + "UNIQUE(" + Channels._ID + "," + Channels.COLUMN_PACKAGE_NAME + ")"
                     + ");");
@@ -1155,6 +1163,16 @@ public class TvProvider extends ContentProvider {
                         .contains(RecordedPrograms.COLUMN_INTERNAL_PROVIDER_ID)) {
                     db.execSQL("ALTER TABLE " + RECORDED_PROGRAMS_TABLE + " ADD "
                             + RecordedPrograms.COLUMN_INTERNAL_PROVIDER_ID + " TEXT;");
+                }
+            }
+            if (oldVersion <= 39) {
+                if (!getColumnNames(db, CHANNELS_TABLE)
+                        .contains(Channels.COLUMN_BROADCAST_VISIBILITY_TYPE)) {
+                    db.execSQL("ALTER TABLE " + CHANNELS_TABLE + " ADD "
+                            + Channels.COLUMN_BROADCAST_VISIBILITY_TYPE
+                            + " INTEGER NOT NULL DEFAULT "
+                            + Channels.BROADCAST_VISIBILITY_TYPE_VISIBLE
+                            + ";");
                 }
             }
             Log.i(TAG, "Upgrading from version " + oldVersion + " to " + newVersion + " is done.");
@@ -1603,7 +1621,7 @@ public class TvProvider extends ContentProvider {
             if (rowId > 0) {
                 mLogHandler.removeMessages(WatchLogHandler.MSG_TRY_CONSOLIDATE_ALL);
                 mLogHandler.sendEmptyMessageDelayed(WatchLogHandler.MSG_TRY_CONSOLIDATE_ALL,
-                        MAX_PROGRAM_DATA_DELAY_IN_MILLIS);
+                        PROGRAM_DATA_START_WATCH_DELAY_IN_MILLIS);
                 return TvContract.buildWatchedProgramUri(rowId);
             }
             Log.w(TAG, "Failed to insert row for " + values + ". Channel does not exist.");
@@ -1613,7 +1631,7 @@ public class TvProvider extends ContentProvider {
             args.arg1 = values.getAsString(WatchedPrograms.COLUMN_INTERNAL_SESSION_TOKEN);
             args.arg2 = watchEndTime;
             Message msg = mLogHandler.obtainMessage(WatchLogHandler.MSG_CONSOLIDATE, args);
-            mLogHandler.sendMessageDelayed(msg, MAX_PROGRAM_DATA_DELAY_IN_MILLIS);
+            mLogHandler.sendMessageDelayed(msg, PROGRAM_DATA_END_WATCH_DELAY_IN_MILLIS);
             return null;
         }
         // All the other cases are invalid.
