@@ -89,7 +89,7 @@ public class TvProvider extends ContentProvider {
     private static final boolean DEBUG = false;
     private static final String TAG = "TvProvider";
 
-    static final int DATABASE_VERSION = 39;
+    static final int DATABASE_VERSION = 40;
     static final String SHARED_PREF_BLOCKED_PACKAGES_KEY = "blocked_packages";
     static final String CHANNELS_TABLE = "channels";
     static final String PROGRAMS_TABLE = "programs";
@@ -248,6 +248,8 @@ public class TvProvider extends ContentProvider {
                 CHANNELS_TABLE + "." + Channels.COLUMN_CHANNEL_LIST_ID);
         sChannelProjectionMap.put(Channels.COLUMN_BROADCAST_GENRE,
                 CHANNELS_TABLE + "." + Channels.COLUMN_BROADCAST_GENRE);
+        sChannelProjectionMap.put(Channels.COLUMN_BROADCAST_VISIBILITY_TYPE,
+                CHANNELS_TABLE + "." + Channels.COLUMN_BROADCAST_VISIBILITY_TYPE);
 
         sProgramProjectionMap.clear();
         sProgramProjectionMap.put(Programs._ID, Programs._ID);
@@ -818,7 +820,8 @@ public class TvProvider extends ContentProvider {
 
         @VisibleForTesting
         DatabaseHelper(Context context, String databaseName, int databaseVersion) {
-            super(context, databaseName, null, databaseVersion);
+            super(context, databaseName, databaseVersion,
+                new SQLiteDatabase.OpenParams.Builder().setSynchronousMode("FULL").build());
             mContext = context;
             setWriteAheadLoggingEnabled(true);
         }
@@ -872,6 +875,10 @@ public class TvProvider extends ContentProvider {
                     + Channels.COLUMN_VIDEO_RESOLUTION + " TEXT,"
                     + Channels.COLUMN_CHANNEL_LIST_ID + " TEXT,"
                     + Channels.COLUMN_BROADCAST_GENRE + " TEXT,"
+                    + Channels.COLUMN_BROADCAST_VISIBILITY_TYPE
+                            + " INTEGER NOT NULL DEFAULT "
+                            + Channels.BROADCAST_VISIBILITY_TYPE_VISIBLE
+                            + ","
                     // Needed for foreign keys in other tables.
                     + "UNIQUE(" + Channels._ID + "," + Channels.COLUMN_PACKAGE_NAME + ")"
                     + ");");
@@ -1156,6 +1163,16 @@ public class TvProvider extends ContentProvider {
                         .contains(RecordedPrograms.COLUMN_INTERNAL_PROVIDER_ID)) {
                     db.execSQL("ALTER TABLE " + RECORDED_PROGRAMS_TABLE + " ADD "
                             + RecordedPrograms.COLUMN_INTERNAL_PROVIDER_ID + " TEXT;");
+                }
+            }
+            if (oldVersion <= 39) {
+                if (!getColumnNames(db, CHANNELS_TABLE)
+                        .contains(Channels.COLUMN_BROADCAST_VISIBILITY_TYPE)) {
+                    db.execSQL("ALTER TABLE " + CHANNELS_TABLE + " ADD "
+                            + Channels.COLUMN_BROADCAST_VISIBILITY_TYPE
+                            + " INTEGER NOT NULL DEFAULT "
+                            + Channels.BROADCAST_VISIBILITY_TYPE_VISIBLE
+                            + ";");
                 }
             }
             Log.i(TAG, "Upgrading from version " + oldVersion + " to " + newVersion + " is done.");
