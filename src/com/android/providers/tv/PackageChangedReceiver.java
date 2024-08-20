@@ -36,7 +36,7 @@ import java.util.Arrays;
  * This will be launched when PACKAGE_CHANGED intent is broadcast.
  */
 public class PackageChangedReceiver extends BroadcastReceiver {
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
     private static final String TAG = "PackageChangedReceiver";
 
     @Override
@@ -64,7 +64,6 @@ public class PackageChangedReceiver extends BroadcastReceiver {
             operations.add(ContentProviderOperation
                     .newDelete(TvContract.PreviewPrograms.CONTENT_URI)
                     .withSelection(ProgramsSelection, ProgramsSelectionArgs).build());
-
 
             String ChannelsSelection = TvContract.BaseTvColumns.COLUMN_PACKAGE_NAME + "=? AND "
                     + TvContract.Channels.COLUMN_TYPE + "=?";
