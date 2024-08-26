@@ -1421,8 +1421,8 @@ public class TvProvider extends ContentProvider {
                 if (kidsModeTvdbSharing() && checkShareFromOwnerEnabled(table) &&
                         (UserHandle.myUserId() != UserHandle.USER_SYSTEM)) {
                     if (mOwnerContext != null) {
-                        return mOwnerContext.getContentResolver().
-                                call(table, method, arg, extras);
+                        Context context = getOwnerContextWithAttributionSource(getCallingPackage());
+                        return context.getContentResolver().call(table, method, arg, extras);
                     } else {
                         throw new IllegalArgumentException("Owner context is null.");
                     }
