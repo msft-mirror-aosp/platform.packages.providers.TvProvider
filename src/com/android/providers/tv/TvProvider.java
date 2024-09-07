@@ -1353,20 +1353,6 @@ public class TvProvider extends ContentProvider {
             return null;
         }
         ensureInitialized();
-
-        Uri table = Uri.parse(arg);
-        if (kidsModeTvdbSharing() && (UserHandle.myUserId() != UserHandle.USER_SYSTEM)
-                && checkShareFromOwnerEnabled(table)
-                && (method.equals(TvContract.METHOD_GET_COLUMNS)
-                || method.equals(TvContract.METHOD_ADD_COLUMN))) {
-            if (mOwnerContext != null) {
-                Context context = getOwnerContextWithAttributionSource(getCallingPackage());
-                return context.getContentResolver().call(table, method, arg, extras);
-            } else {
-                throw new IllegalArgumentException("Owner context is null.");
-            }
-        }
-
         Map<String, String> projectionMap;
         switch (method) {
             case TvContract.METHOD_GET_COLUMNS:
@@ -1430,6 +1416,16 @@ public class TvProvider extends ContentProvider {
                         break;
                     default:
                         return null;
+                }
+                Uri table = Uri.parse(arg);
+                if (kidsModeTvdbSharing() && checkShareFromOwnerEnabled(table) &&
+                        (UserHandle.myUserId() != UserHandle.USER_SYSTEM)) {
+                    if (mOwnerContext != null) {
+                        Context context = getOwnerContextWithAttributionSource(getCallingPackage());
+                        return context.getContentResolver().call(table, method, arg, extras);
+                    } else {
+                        throw new IllegalArgumentException("Owner context is null.");
+                    }
                 }
                 SQLiteDatabase db = mOpenHelper.getWritableDatabase();
                 try {
