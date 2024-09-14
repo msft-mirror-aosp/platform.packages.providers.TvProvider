@@ -1354,14 +1354,13 @@ public class TvProvider extends ContentProvider {
         }
         ensureInitialized();
 
-        Uri table = Uri.parse(arg);
         if (kidsModeTvdbSharing() && (UserHandle.myUserId() != UserHandle.USER_SYSTEM)
-                && checkShareFromOwnerEnabled(table)
                 && (method.equals(TvContract.METHOD_GET_COLUMNS)
-                || method.equals(TvContract.METHOD_ADD_COLUMN))) {
+                || method.equals(TvContract.METHOD_ADD_COLUMN))
+                && checkShareFromOwnerEnabled(Uri.parse(arg))) {
             if (mOwnerContext != null) {
                 Context context = getOwnerContextWithAttributionSource(getCallingPackage());
-                return context.getContentResolver().call(table, method, arg, extras);
+                return context.getContentResolver().call(Uri.parse(arg), method, arg, extras);
             } else {
                 throw new IllegalArgumentException("Owner context is null.");
             }
