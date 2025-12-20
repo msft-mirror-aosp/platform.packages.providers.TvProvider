@@ -2167,8 +2167,8 @@ public class TvProvider extends ContentProvider {
     private static String generateDefaultClause(String dataType, String defaultValue)
             throws IllegalArgumentException {
         String defaultValueString = " DEFAULT ";
-        switch (dataType.toLowerCase()) {
-            case "integer":
+        switch (dataType.toLowerCase(Locale.ENGLISH)) {
+	    case "integer":
                 return defaultValueString + Integer.parseInt(defaultValue);
             case "real":
                 return defaultValueString + Double.parseDouble(defaultValue);
