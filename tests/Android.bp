@@ -34,3 +34,20 @@ android_test {
     ],
     instrumentation_for: "TvProvider",
 }
+
+android_test {
+    name: "TvExtensionProviderTest",
+    srcs: ["src/com/android/providers/tv/TvExtensionProviderTest.java"],
+    platform_apis: true,
+    static_libs: [
+        "junit",
+        "androidx.test.rules",
+        "tv_extension_provider_lib",
+    ],
+    manifest: "AndroidManifestTvExtensionProviderTest.xml",
+    data: [
+        ":TvProvider",
+    ],
+
+    test_suites: ["TvExtensionProviderTest"],
+}

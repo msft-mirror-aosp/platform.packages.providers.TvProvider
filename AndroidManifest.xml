@@ -72,7 +72,12 @@
         <grant-uri-permission android:pathPattern="/channel" />
         <grant-uri-permission android:pathPattern="/program" />
         </provider>
-
+        <provider
+            android:name="TvExtensionProvider"
+            android:authorities="android.media.tv.extension"
+            android:exported="true"
+            android:syncable="true">
+        </provider>
         <service android:name="EpgDataCleanupService" />
 
         <!-- Handles database upgrades after OTAs -->
