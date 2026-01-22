@@ -22,8 +22,14 @@ android_app {
     name: "TvProvider",
 
     srcs: ["src/**/*.java"],
-
+    exclude_srcs: ["src/com/android/providers/tv/TvExtensionProvider.java"], // Exclude the file
+    static_libs: ["tv_extension_provider_lib"],
     platform_apis: true,
     privileged: true,
 
+}
+
+java_library {
+    name: "tv_extension_provider_lib",
+    srcs: ["src/com/android/providers/tv/TvExtensionProvider.java"],
 }
