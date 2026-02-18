@@ -66,13 +66,19 @@ import android.provider.BaseColumns;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.Log;
+
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.os.SomeArgs;
 import com.android.providers.tv.util.SqlParams;
 import com.android.providers.tv.util.SqliteTokenFinder;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -84,6 +90,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
 import libcore.io.IoUtils;
 
 /**
@@ -182,7 +189,7 @@ public class TvProvider extends ContentProvider {
                 MATCH_WATCH_NEXT_PROGRAM_ID);
     }
 
-     private static void initProjectionMaps() {
+    private static void initProjectionMaps() {
         sChannelProjectionMap.clear();
         sChannelProjectionMap.put(Channels._ID, CHANNELS_TABLE + "." + Channels._ID);
         sChannelProjectionMap.put(Channels._COUNT, COUNT_STAR);
@@ -644,102 +651,102 @@ public class TvProvider extends ContentProvider {
 
     private static final String CREATE_RECORDED_PROGRAMS_TABLE_SQL =
             "CREATE TABLE " + RECORDED_PROGRAMS_TABLE + " ("
-            + RecordedPrograms._ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
-            + RecordedPrograms.COLUMN_PACKAGE_NAME + " TEXT NOT NULL,"
-            + RecordedPrograms.COLUMN_INPUT_ID + " TEXT NOT NULL,"
-            + RecordedPrograms.COLUMN_CHANNEL_ID + " INTEGER,"
-            + RecordedPrograms.COLUMN_TITLE + " TEXT,"
-            + RecordedPrograms.COLUMN_SEASON_DISPLAY_NUMBER + " TEXT,"
-            + RecordedPrograms.COLUMN_SEASON_TITLE + " TEXT,"
-            + RecordedPrograms.COLUMN_EPISODE_DISPLAY_NUMBER + " TEXT,"
-            + RecordedPrograms.COLUMN_EPISODE_TITLE + " TEXT,"
-            + RecordedPrograms.COLUMN_START_TIME_UTC_MILLIS + " INTEGER,"
-            + RecordedPrograms.COLUMN_END_TIME_UTC_MILLIS + " INTEGER,"
-            + RecordedPrograms.COLUMN_BROADCAST_GENRE + " TEXT,"
-            + RecordedPrograms.COLUMN_CANONICAL_GENRE + " TEXT,"
-            + RecordedPrograms.COLUMN_SHORT_DESCRIPTION + " TEXT,"
-            + RecordedPrograms.COLUMN_LONG_DESCRIPTION + " TEXT,"
-            + RecordedPrograms.COLUMN_VIDEO_WIDTH + " INTEGER,"
-            + RecordedPrograms.COLUMN_VIDEO_HEIGHT + " INTEGER,"
-            + RecordedPrograms.COLUMN_AUDIO_LANGUAGE + " TEXT,"
-            + RecordedPrograms.COLUMN_CONTENT_RATING + " TEXT,"
-            + RecordedPrograms.COLUMN_POSTER_ART_URI + " TEXT,"
-            + RecordedPrograms.COLUMN_THUMBNAIL_URI + " TEXT,"
-            + RecordedPrograms.COLUMN_SEARCHABLE + " INTEGER NOT NULL DEFAULT 1,"
-            + RecordedPrograms.COLUMN_RECORDING_DATA_URI + " TEXT,"
-            + RecordedPrograms.COLUMN_RECORDING_DATA_BYTES + " INTEGER,"
-            + RecordedPrograms.COLUMN_RECORDING_DURATION_MILLIS + " INTEGER,"
-            + RecordedPrograms.COLUMN_RECORDING_EXPIRE_TIME_UTC_MILLIS + " INTEGER,"
-            + RecordedPrograms.COLUMN_INTERNAL_PROVIDER_DATA + " BLOB,"
-            + RecordedPrograms.COLUMN_INTERNAL_PROVIDER_FLAG1 + " INTEGER,"
-            + RecordedPrograms.COLUMN_INTERNAL_PROVIDER_FLAG2 + " INTEGER,"
-            + RecordedPrograms.COLUMN_INTERNAL_PROVIDER_FLAG3 + " INTEGER,"
-            + RecordedPrograms.COLUMN_INTERNAL_PROVIDER_FLAG4 + " INTEGER,"
-            + RecordedPrograms.COLUMN_VERSION_NUMBER + " INTEGER,"
-            + RecordedPrograms.COLUMN_REVIEW_RATING_STYLE + " INTEGER,"
-            + RecordedPrograms.COLUMN_REVIEW_RATING + " TEXT,"
-            + PROGRAMS_COLUMN_SERIES_ID + " TEXT,"
-            + RecordedPrograms.COLUMN_MULTI_SERIES_ID + " TEXT,"
-            + RecordedPrograms.COLUMN_SPLIT_ID + " TEXT,"
-            + RecordedPrograms.COLUMN_INTERNAL_PROVIDER_ID + " TEXT,"
-            + "FOREIGN KEY(" + RecordedPrograms.COLUMN_CHANNEL_ID + ") "
+                    + RecordedPrograms._ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + RecordedPrograms.COLUMN_PACKAGE_NAME + " TEXT NOT NULL,"
+                    + RecordedPrograms.COLUMN_INPUT_ID + " TEXT NOT NULL,"
+                    + RecordedPrograms.COLUMN_CHANNEL_ID + " INTEGER,"
+                    + RecordedPrograms.COLUMN_TITLE + " TEXT,"
+                    + RecordedPrograms.COLUMN_SEASON_DISPLAY_NUMBER + " TEXT,"
+                    + RecordedPrograms.COLUMN_SEASON_TITLE + " TEXT,"
+                    + RecordedPrograms.COLUMN_EPISODE_DISPLAY_NUMBER + " TEXT,"
+                    + RecordedPrograms.COLUMN_EPISODE_TITLE + " TEXT,"
+                    + RecordedPrograms.COLUMN_START_TIME_UTC_MILLIS + " INTEGER,"
+                    + RecordedPrograms.COLUMN_END_TIME_UTC_MILLIS + " INTEGER,"
+                    + RecordedPrograms.COLUMN_BROADCAST_GENRE + " TEXT,"
+                    + RecordedPrograms.COLUMN_CANONICAL_GENRE + " TEXT,"
+                    + RecordedPrograms.COLUMN_SHORT_DESCRIPTION + " TEXT,"
+                    + RecordedPrograms.COLUMN_LONG_DESCRIPTION + " TEXT,"
+                    + RecordedPrograms.COLUMN_VIDEO_WIDTH + " INTEGER,"
+                    + RecordedPrograms.COLUMN_VIDEO_HEIGHT + " INTEGER,"
+                    + RecordedPrograms.COLUMN_AUDIO_LANGUAGE + " TEXT,"
+                    + RecordedPrograms.COLUMN_CONTENT_RATING + " TEXT,"
+                    + RecordedPrograms.COLUMN_POSTER_ART_URI + " TEXT,"
+                    + RecordedPrograms.COLUMN_THUMBNAIL_URI + " TEXT,"
+                    + RecordedPrograms.COLUMN_SEARCHABLE + " INTEGER NOT NULL DEFAULT 1,"
+                    + RecordedPrograms.COLUMN_RECORDING_DATA_URI + " TEXT,"
+                    + RecordedPrograms.COLUMN_RECORDING_DATA_BYTES + " INTEGER,"
+                    + RecordedPrograms.COLUMN_RECORDING_DURATION_MILLIS + " INTEGER,"
+                    + RecordedPrograms.COLUMN_RECORDING_EXPIRE_TIME_UTC_MILLIS + " INTEGER,"
+                    + RecordedPrograms.COLUMN_INTERNAL_PROVIDER_DATA + " BLOB,"
+                    + RecordedPrograms.COLUMN_INTERNAL_PROVIDER_FLAG1 + " INTEGER,"
+                    + RecordedPrograms.COLUMN_INTERNAL_PROVIDER_FLAG2 + " INTEGER,"
+                    + RecordedPrograms.COLUMN_INTERNAL_PROVIDER_FLAG3 + " INTEGER,"
+                    + RecordedPrograms.COLUMN_INTERNAL_PROVIDER_FLAG4 + " INTEGER,"
+                    + RecordedPrograms.COLUMN_VERSION_NUMBER + " INTEGER,"
+                    + RecordedPrograms.COLUMN_REVIEW_RATING_STYLE + " INTEGER,"
+                    + RecordedPrograms.COLUMN_REVIEW_RATING + " TEXT,"
+                    + PROGRAMS_COLUMN_SERIES_ID + " TEXT,"
+                    + RecordedPrograms.COLUMN_MULTI_SERIES_ID + " TEXT,"
+                    + RecordedPrograms.COLUMN_SPLIT_ID + " TEXT,"
+                    + RecordedPrograms.COLUMN_INTERNAL_PROVIDER_ID + " TEXT,"
+                    + "FOREIGN KEY(" + RecordedPrograms.COLUMN_CHANNEL_ID + ") "
                     + "REFERENCES " + CHANNELS_TABLE + "(" + Channels._ID + ") "
                     + "ON UPDATE CASCADE ON DELETE SET NULL);";
 
     private static final String CREATE_PREVIEW_PROGRAMS_TABLE_SQL =
             "CREATE TABLE " + PREVIEW_PROGRAMS_TABLE + " ("
-            + PreviewPrograms._ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
-            + PreviewPrograms.COLUMN_PACKAGE_NAME + " TEXT NOT NULL,"
-            + PreviewPrograms.COLUMN_CHANNEL_ID + " INTEGER,"
-            + PreviewPrograms.COLUMN_TITLE + " TEXT,"
-            + PreviewPrograms.COLUMN_SEASON_DISPLAY_NUMBER + " TEXT,"
-            + PreviewPrograms.COLUMN_SEASON_TITLE + " TEXT,"
-            + PreviewPrograms.COLUMN_EPISODE_DISPLAY_NUMBER + " TEXT,"
-            + PreviewPrograms.COLUMN_EPISODE_TITLE + " TEXT,"
-            + PreviewPrograms.COLUMN_CANONICAL_GENRE + " TEXT,"
-            + PreviewPrograms.COLUMN_SHORT_DESCRIPTION + " TEXT,"
-            + PreviewPrograms.COLUMN_LONG_DESCRIPTION + " TEXT,"
-            + PreviewPrograms.COLUMN_VIDEO_WIDTH + " INTEGER,"
-            + PreviewPrograms.COLUMN_VIDEO_HEIGHT + " INTEGER,"
-            + PreviewPrograms.COLUMN_AUDIO_LANGUAGE + " TEXT,"
-            + PreviewPrograms.COLUMN_CONTENT_RATING + " TEXT,"
-            + PreviewPrograms.COLUMN_POSTER_ART_URI + " TEXT,"
-            + PreviewPrograms.COLUMN_THUMBNAIL_URI + " TEXT,"
-            + PreviewPrograms.COLUMN_SEARCHABLE + " INTEGER NOT NULL DEFAULT 1,"
-            + PreviewPrograms.COLUMN_INTERNAL_PROVIDER_DATA + " BLOB,"
-            + PreviewPrograms.COLUMN_INTERNAL_PROVIDER_FLAG1 + " INTEGER,"
-            + PreviewPrograms.COLUMN_INTERNAL_PROVIDER_FLAG2 + " INTEGER,"
-            + PreviewPrograms.COLUMN_INTERNAL_PROVIDER_FLAG3 + " INTEGER,"
-            + PreviewPrograms.COLUMN_INTERNAL_PROVIDER_FLAG4 + " INTEGER,"
-            + PreviewPrograms.COLUMN_VERSION_NUMBER + " INTEGER,"
-            + PreviewPrograms.COLUMN_INTERNAL_PROVIDER_ID + " TEXT,"
-            + PreviewPrograms.COLUMN_PREVIEW_VIDEO_URI + " TEXT,"
-            + PreviewPrograms.COLUMN_LAST_PLAYBACK_POSITION_MILLIS + " INTEGER,"
-            + PreviewPrograms.COLUMN_DURATION_MILLIS + " INTEGER,"
-            + PreviewPrograms.COLUMN_INTENT_URI + " TEXT,"
-            + PreviewPrograms.COLUMN_WEIGHT + " INTEGER,"
-            + PreviewPrograms.COLUMN_TRANSIENT + " INTEGER NOT NULL DEFAULT 0,"
-            + PreviewPrograms.COLUMN_TYPE + " INTEGER NOT NULL,"
-            + PreviewPrograms.COLUMN_POSTER_ART_ASPECT_RATIO + " INTEGER,"
-            + PreviewPrograms.COLUMN_THUMBNAIL_ASPECT_RATIO + " INTEGER,"
-            + PreviewPrograms.COLUMN_LOGO_URI + " TEXT,"
-            + PreviewPrograms.COLUMN_AVAILABILITY + " INTERGER,"
-            + PreviewPrograms.COLUMN_STARTING_PRICE + " TEXT,"
-            + PreviewPrograms.COLUMN_OFFER_PRICE + " TEXT,"
-            + PreviewPrograms.COLUMN_RELEASE_DATE + " TEXT,"
-            + PreviewPrograms.COLUMN_ITEM_COUNT + " INTEGER,"
-            + PreviewPrograms.COLUMN_LIVE + " INTEGER NOT NULL DEFAULT 0,"
-            + PreviewPrograms.COLUMN_INTERACTION_TYPE + " INTEGER,"
-            + PreviewPrograms.COLUMN_INTERACTION_COUNT + " INTEGER,"
-            + PreviewPrograms.COLUMN_AUTHOR + " TEXT,"
-            + PreviewPrograms.COLUMN_REVIEW_RATING_STYLE + " INTEGER,"
-            + PreviewPrograms.COLUMN_REVIEW_RATING + " TEXT,"
-            + PreviewPrograms.COLUMN_BROWSABLE + " INTEGER NOT NULL DEFAULT 1,"
-            + PreviewPrograms.COLUMN_CONTENT_ID + " TEXT,"
-            + PreviewPrograms.COLUMN_SPLIT_ID + " TEXT,"
-            + PreviewPrograms.COLUMN_START_TIME_UTC_MILLIS + " INTEGER,"
-            + PreviewPrograms.COLUMN_END_TIME_UTC_MILLIS + " INTEGER,"
-            + "FOREIGN KEY("
+                    + PreviewPrograms._ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + PreviewPrograms.COLUMN_PACKAGE_NAME + " TEXT NOT NULL,"
+                    + PreviewPrograms.COLUMN_CHANNEL_ID + " INTEGER,"
+                    + PreviewPrograms.COLUMN_TITLE + " TEXT,"
+                    + PreviewPrograms.COLUMN_SEASON_DISPLAY_NUMBER + " TEXT,"
+                    + PreviewPrograms.COLUMN_SEASON_TITLE + " TEXT,"
+                    + PreviewPrograms.COLUMN_EPISODE_DISPLAY_NUMBER + " TEXT,"
+                    + PreviewPrograms.COLUMN_EPISODE_TITLE + " TEXT,"
+                    + PreviewPrograms.COLUMN_CANONICAL_GENRE + " TEXT,"
+                    + PreviewPrograms.COLUMN_SHORT_DESCRIPTION + " TEXT,"
+                    + PreviewPrograms.COLUMN_LONG_DESCRIPTION + " TEXT,"
+                    + PreviewPrograms.COLUMN_VIDEO_WIDTH + " INTEGER,"
+                    + PreviewPrograms.COLUMN_VIDEO_HEIGHT + " INTEGER,"
+                    + PreviewPrograms.COLUMN_AUDIO_LANGUAGE + " TEXT,"
+                    + PreviewPrograms.COLUMN_CONTENT_RATING + " TEXT,"
+                    + PreviewPrograms.COLUMN_POSTER_ART_URI + " TEXT,"
+                    + PreviewPrograms.COLUMN_THUMBNAIL_URI + " TEXT,"
+                    + PreviewPrograms.COLUMN_SEARCHABLE + " INTEGER NOT NULL DEFAULT 1,"
+                    + PreviewPrograms.COLUMN_INTERNAL_PROVIDER_DATA + " BLOB,"
+                    + PreviewPrograms.COLUMN_INTERNAL_PROVIDER_FLAG1 + " INTEGER,"
+                    + PreviewPrograms.COLUMN_INTERNAL_PROVIDER_FLAG2 + " INTEGER,"
+                    + PreviewPrograms.COLUMN_INTERNAL_PROVIDER_FLAG3 + " INTEGER,"
+                    + PreviewPrograms.COLUMN_INTERNAL_PROVIDER_FLAG4 + " INTEGER,"
+                    + PreviewPrograms.COLUMN_VERSION_NUMBER + " INTEGER,"
+                    + PreviewPrograms.COLUMN_INTERNAL_PROVIDER_ID + " TEXT,"
+                    + PreviewPrograms.COLUMN_PREVIEW_VIDEO_URI + " TEXT,"
+                    + PreviewPrograms.COLUMN_LAST_PLAYBACK_POSITION_MILLIS + " INTEGER,"
+                    + PreviewPrograms.COLUMN_DURATION_MILLIS + " INTEGER,"
+                    + PreviewPrograms.COLUMN_INTENT_URI + " TEXT,"
+                    + PreviewPrograms.COLUMN_WEIGHT + " INTEGER,"
+                    + PreviewPrograms.COLUMN_TRANSIENT + " INTEGER NOT NULL DEFAULT 0,"
+                    + PreviewPrograms.COLUMN_TYPE + " INTEGER NOT NULL,"
+                    + PreviewPrograms.COLUMN_POSTER_ART_ASPECT_RATIO + " INTEGER,"
+                    + PreviewPrograms.COLUMN_THUMBNAIL_ASPECT_RATIO + " INTEGER,"
+                    + PreviewPrograms.COLUMN_LOGO_URI + " TEXT,"
+                    + PreviewPrograms.COLUMN_AVAILABILITY + " INTEGER,"
+                    + PreviewPrograms.COLUMN_STARTING_PRICE + " TEXT,"
+                    + PreviewPrograms.COLUMN_OFFER_PRICE + " TEXT,"
+                    + PreviewPrograms.COLUMN_RELEASE_DATE + " TEXT,"
+                    + PreviewPrograms.COLUMN_ITEM_COUNT + " INTEGER,"
+                    + PreviewPrograms.COLUMN_LIVE + " INTEGER NOT NULL DEFAULT 0,"
+                    + PreviewPrograms.COLUMN_INTERACTION_TYPE + " INTEGER,"
+                    + PreviewPrograms.COLUMN_INTERACTION_COUNT + " INTEGER,"
+                    + PreviewPrograms.COLUMN_AUTHOR + " TEXT,"
+                    + PreviewPrograms.COLUMN_REVIEW_RATING_STYLE + " INTEGER,"
+                    + PreviewPrograms.COLUMN_REVIEW_RATING + " TEXT,"
+                    + PreviewPrograms.COLUMN_BROWSABLE + " INTEGER NOT NULL DEFAULT 1,"
+                    + PreviewPrograms.COLUMN_CONTENT_ID + " TEXT,"
+                    + PreviewPrograms.COLUMN_SPLIT_ID + " TEXT,"
+                    + PreviewPrograms.COLUMN_START_TIME_UTC_MILLIS + " INTEGER,"
+                    + PreviewPrograms.COLUMN_END_TIME_UTC_MILLIS + " INTEGER,"
+                    + "FOREIGN KEY("
                     + PreviewPrograms.COLUMN_CHANNEL_ID + "," + PreviewPrograms.COLUMN_PACKAGE_NAME
                     + ") REFERENCES " + CHANNELS_TABLE + "("
                     + Channels._ID + "," + Channels.COLUMN_PACKAGE_NAME
@@ -747,67 +754,67 @@ public class TvProvider extends ContentProvider {
                     + ");";
     private static final String CREATE_PREVIEW_PROGRAMS_PACKAGE_NAME_INDEX_SQL =
             "CREATE INDEX preview_programs_package_name_index ON " + PREVIEW_PROGRAMS_TABLE
-            + "(" + PreviewPrograms.COLUMN_PACKAGE_NAME + ");";
+                    + "(" + PreviewPrograms.COLUMN_PACKAGE_NAME + ");";
     private static final String CREATE_PREVIEW_PROGRAMS_CHANNEL_ID_INDEX_SQL =
             "CREATE INDEX preview_programs_id_index ON " + PREVIEW_PROGRAMS_TABLE
-            + "(" + PreviewPrograms.COLUMN_CHANNEL_ID + ");";
+                    + "(" + PreviewPrograms.COLUMN_CHANNEL_ID + ");";
     private static final String CREATE_WATCH_NEXT_PROGRAMS_TABLE_SQL =
             "CREATE TABLE " + WATCH_NEXT_PROGRAMS_TABLE + " ("
-            + WatchNextPrograms._ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
-            + WatchNextPrograms.COLUMN_PACKAGE_NAME + " TEXT NOT NULL,"
-            + WatchNextPrograms.COLUMN_TITLE + " TEXT,"
-            + WatchNextPrograms.COLUMN_SEASON_DISPLAY_NUMBER + " TEXT,"
-            + WatchNextPrograms.COLUMN_SEASON_TITLE + " TEXT,"
-            + WatchNextPrograms.COLUMN_EPISODE_DISPLAY_NUMBER + " TEXT,"
-            + WatchNextPrograms.COLUMN_EPISODE_TITLE + " TEXT,"
-            + WatchNextPrograms.COLUMN_CANONICAL_GENRE + " TEXT,"
-            + WatchNextPrograms.COLUMN_SHORT_DESCRIPTION + " TEXT,"
-            + WatchNextPrograms.COLUMN_LONG_DESCRIPTION + " TEXT,"
-            + WatchNextPrograms.COLUMN_VIDEO_WIDTH + " INTEGER,"
-            + WatchNextPrograms.COLUMN_VIDEO_HEIGHT + " INTEGER,"
-            + WatchNextPrograms.COLUMN_AUDIO_LANGUAGE + " TEXT,"
-            + WatchNextPrograms.COLUMN_CONTENT_RATING + " TEXT,"
-            + WatchNextPrograms.COLUMN_POSTER_ART_URI + " TEXT,"
-            + WatchNextPrograms.COLUMN_THUMBNAIL_URI + " TEXT,"
-            + WatchNextPrograms.COLUMN_SEARCHABLE + " INTEGER NOT NULL DEFAULT 1,"
-            + WatchNextPrograms.COLUMN_INTERNAL_PROVIDER_DATA + " BLOB,"
-            + WatchNextPrograms.COLUMN_INTERNAL_PROVIDER_FLAG1 + " INTEGER,"
-            + WatchNextPrograms.COLUMN_INTERNAL_PROVIDER_FLAG2 + " INTEGER,"
-            + WatchNextPrograms.COLUMN_INTERNAL_PROVIDER_FLAG3 + " INTEGER,"
-            + WatchNextPrograms.COLUMN_INTERNAL_PROVIDER_FLAG4 + " INTEGER,"
-            + WatchNextPrograms.COLUMN_VERSION_NUMBER + " INTEGER,"
-            + WatchNextPrograms.COLUMN_INTERNAL_PROVIDER_ID + " TEXT,"
-            + WatchNextPrograms.COLUMN_PREVIEW_VIDEO_URI + " TEXT,"
-            + WatchNextPrograms.COLUMN_LAST_PLAYBACK_POSITION_MILLIS + " INTEGER,"
-            + WatchNextPrograms.COLUMN_DURATION_MILLIS + " INTEGER,"
-            + WatchNextPrograms.COLUMN_INTENT_URI + " TEXT,"
-            + WatchNextPrograms.COLUMN_TRANSIENT + " INTEGER NOT NULL DEFAULT 0,"
-            + WatchNextPrograms.COLUMN_TYPE + " INTEGER NOT NULL,"
-            + WatchNextPrograms.COLUMN_WATCH_NEXT_TYPE + " INTEGER,"
-            + WatchNextPrograms.COLUMN_POSTER_ART_ASPECT_RATIO + " INTEGER,"
-            + WatchNextPrograms.COLUMN_THUMBNAIL_ASPECT_RATIO + " INTEGER,"
-            + WatchNextPrograms.COLUMN_LOGO_URI + " TEXT,"
-            + WatchNextPrograms.COLUMN_AVAILABILITY + " INTEGER,"
-            + WatchNextPrograms.COLUMN_STARTING_PRICE + " TEXT,"
-            + WatchNextPrograms.COLUMN_OFFER_PRICE + " TEXT,"
-            + WatchNextPrograms.COLUMN_RELEASE_DATE + " TEXT,"
-            + WatchNextPrograms.COLUMN_ITEM_COUNT + " INTEGER,"
-            + WatchNextPrograms.COLUMN_LIVE + " INTEGER NOT NULL DEFAULT 0,"
-            + WatchNextPrograms.COLUMN_INTERACTION_TYPE + " INTEGER,"
-            + WatchNextPrograms.COLUMN_INTERACTION_COUNT + " INTEGER,"
-            + WatchNextPrograms.COLUMN_AUTHOR + " TEXT,"
-            + WatchNextPrograms.COLUMN_REVIEW_RATING_STYLE + " INTEGER,"
-            + WatchNextPrograms.COLUMN_REVIEW_RATING + " TEXT,"
-            + WatchNextPrograms.COLUMN_BROWSABLE + " INTEGER NOT NULL DEFAULT 1,"
-            + WatchNextPrograms.COLUMN_CONTENT_ID + " TEXT,"
-            + WatchNextPrograms.COLUMN_LAST_ENGAGEMENT_TIME_UTC_MILLIS + " INTEGER,"
-            + WatchNextPrograms.COLUMN_SPLIT_ID + " TEXT,"
-            + WatchNextPrograms.COLUMN_START_TIME_UTC_MILLIS + " INTEGER,"
-            + WatchNextPrograms.COLUMN_END_TIME_UTC_MILLIS + " INTEGER"
-            + ");";
+                    + WatchNextPrograms._ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + WatchNextPrograms.COLUMN_PACKAGE_NAME + " TEXT NOT NULL,"
+                    + WatchNextPrograms.COLUMN_TITLE + " TEXT,"
+                    + WatchNextPrograms.COLUMN_SEASON_DISPLAY_NUMBER + " TEXT,"
+                    + WatchNextPrograms.COLUMN_SEASON_TITLE + " TEXT,"
+                    + WatchNextPrograms.COLUMN_EPISODE_DISPLAY_NUMBER + " TEXT,"
+                    + WatchNextPrograms.COLUMN_EPISODE_TITLE + " TEXT,"
+                    + WatchNextPrograms.COLUMN_CANONICAL_GENRE + " TEXT,"
+                    + WatchNextPrograms.COLUMN_SHORT_DESCRIPTION + " TEXT,"
+                    + WatchNextPrograms.COLUMN_LONG_DESCRIPTION + " TEXT,"
+                    + WatchNextPrograms.COLUMN_VIDEO_WIDTH + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_VIDEO_HEIGHT + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_AUDIO_LANGUAGE + " TEXT,"
+                    + WatchNextPrograms.COLUMN_CONTENT_RATING + " TEXT,"
+                    + WatchNextPrograms.COLUMN_POSTER_ART_URI + " TEXT,"
+                    + WatchNextPrograms.COLUMN_THUMBNAIL_URI + " TEXT,"
+                    + WatchNextPrograms.COLUMN_SEARCHABLE + " INTEGER NOT NULL DEFAULT 1,"
+                    + WatchNextPrograms.COLUMN_INTERNAL_PROVIDER_DATA + " BLOB,"
+                    + WatchNextPrograms.COLUMN_INTERNAL_PROVIDER_FLAG1 + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_INTERNAL_PROVIDER_FLAG2 + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_INTERNAL_PROVIDER_FLAG3 + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_INTERNAL_PROVIDER_FLAG4 + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_VERSION_NUMBER + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_INTERNAL_PROVIDER_ID + " TEXT,"
+                    + WatchNextPrograms.COLUMN_PREVIEW_VIDEO_URI + " TEXT,"
+                    + WatchNextPrograms.COLUMN_LAST_PLAYBACK_POSITION_MILLIS + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_DURATION_MILLIS + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_INTENT_URI + " TEXT,"
+                    + WatchNextPrograms.COLUMN_TRANSIENT + " INTEGER NOT NULL DEFAULT 0,"
+                    + WatchNextPrograms.COLUMN_TYPE + " INTEGER NOT NULL,"
+                    + WatchNextPrograms.COLUMN_WATCH_NEXT_TYPE + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_POSTER_ART_ASPECT_RATIO + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_THUMBNAIL_ASPECT_RATIO + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_LOGO_URI + " TEXT,"
+                    + WatchNextPrograms.COLUMN_AVAILABILITY + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_STARTING_PRICE + " TEXT,"
+                    + WatchNextPrograms.COLUMN_OFFER_PRICE + " TEXT,"
+                    + WatchNextPrograms.COLUMN_RELEASE_DATE + " TEXT,"
+                    + WatchNextPrograms.COLUMN_ITEM_COUNT + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_LIVE + " INTEGER NOT NULL DEFAULT 0,"
+                    + WatchNextPrograms.COLUMN_INTERACTION_TYPE + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_INTERACTION_COUNT + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_AUTHOR + " TEXT,"
+                    + WatchNextPrograms.COLUMN_REVIEW_RATING_STYLE + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_REVIEW_RATING + " TEXT,"
+                    + WatchNextPrograms.COLUMN_BROWSABLE + " INTEGER NOT NULL DEFAULT 1,"
+                    + WatchNextPrograms.COLUMN_CONTENT_ID + " TEXT,"
+                    + WatchNextPrograms.COLUMN_LAST_ENGAGEMENT_TIME_UTC_MILLIS + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_SPLIT_ID + " TEXT,"
+                    + WatchNextPrograms.COLUMN_START_TIME_UTC_MILLIS + " INTEGER,"
+                    + WatchNextPrograms.COLUMN_END_TIME_UTC_MILLIS + " INTEGER"
+                    + ");";
     private static final String CREATE_WATCH_NEXT_PROGRAMS_PACKAGE_NAME_INDEX_SQL =
             "CREATE INDEX watch_next_programs_package_name_index ON " + WATCH_NEXT_PROGRAMS_TABLE
-            + "(" + WatchNextPrograms.COLUMN_PACKAGE_NAME + ");";
+                    + "(" + WatchNextPrograms.COLUMN_PACKAGE_NAME + ");";
 
     static class DatabaseHelper extends SQLiteOpenHelper {
         private static DatabaseHelper sSingleton = null;
@@ -827,7 +834,7 @@ public class TvProvider extends ContentProvider {
         @VisibleForTesting
         DatabaseHelper(Context context, String databaseName, int databaseVersion) {
             super(context, databaseName, databaseVersion,
-                new SQLiteDatabase.OpenParams.Builder().setSynchronousMode("FULL").build());
+                    new SQLiteDatabase.OpenParams.Builder().setSynchronousMode("FULL").build());
             mContext = context;
             setWriteAheadLoggingEnabled(true);
         }
@@ -882,9 +889,9 @@ public class TvProvider extends ContentProvider {
                     + Channels.COLUMN_CHANNEL_LIST_ID + " TEXT,"
                     + Channels.COLUMN_BROADCAST_GENRE + " TEXT,"
                     + Channels.COLUMN_BROADCAST_VISIBILITY_TYPE
-                            + " INTEGER NOT NULL DEFAULT "
-                            + Channels.BROADCAST_VISIBILITY_TYPE_VISIBLE
-                            + ","
+                    + " INTEGER NOT NULL DEFAULT "
+                    + Channels.BROADCAST_VISIBILITY_TYPE_VISIBLE
+                    + ","
                     // Needed for foreign keys in other tables.
                     + "UNIQUE(" + Channels._ID + "," + Channels.COLUMN_PACKAGE_NAME + ")"
                     + ");");
@@ -927,10 +934,10 @@ public class TvProvider extends ContentProvider {
                     + Programs.COLUMN_SCRAMBLED + " INTEGER NOT NULL DEFAULT 0,"
                     + Programs.COLUMN_INTERNAL_PROVIDER_ID + " TEXT,"
                     + "FOREIGN KEY("
-                            + Programs.COLUMN_CHANNEL_ID + "," + Programs.COLUMN_PACKAGE_NAME
-                            + ") REFERENCES " + CHANNELS_TABLE + "("
-                            + Channels._ID + "," + Channels.COLUMN_PACKAGE_NAME
-                            + ") ON UPDATE CASCADE ON DELETE CASCADE"
+                    + Programs.COLUMN_CHANNEL_ID + "," + Programs.COLUMN_PACKAGE_NAME
+                    + ") REFERENCES " + CHANNELS_TABLE + "("
+                    + Channels._ID + "," + Channels.COLUMN_PACKAGE_NAME
+                    + ") ON UPDATE CASCADE ON DELETE CASCADE"
                     + ");");
             db.execSQL("CREATE INDEX " + PROGRAMS_TABLE_PACKAGE_NAME_INDEX + " ON " + PROGRAMS_TABLE
                     + "(" + Programs.COLUMN_PACKAGE_NAME + ");");
@@ -956,11 +963,11 @@ public class TvProvider extends ContentProvider {
                     + WatchedPrograms.COLUMN_INTERNAL_SESSION_TOKEN + " TEXT NOT NULL,"
                     + WATCHED_PROGRAMS_COLUMN_CONSOLIDATED + " INTEGER NOT NULL DEFAULT 0,"
                     + "FOREIGN KEY("
-                            + WatchedPrograms.COLUMN_CHANNEL_ID + ","
-                            + WatchedPrograms.COLUMN_PACKAGE_NAME
-                            + ") REFERENCES " + CHANNELS_TABLE + "("
-                            + Channels._ID + "," + Channels.COLUMN_PACKAGE_NAME
-                            + ") ON UPDATE CASCADE ON DELETE CASCADE"
+                    + WatchedPrograms.COLUMN_CHANNEL_ID + ","
+                    + WatchedPrograms.COLUMN_PACKAGE_NAME
+                    + ") REFERENCES " + CHANNELS_TABLE + "("
+                    + Channels._ID + "," + Channels.COLUMN_PACKAGE_NAME
+                    + ") ON UPDATE CASCADE ON DELETE CASCADE"
                     + ");");
             db.execSQL("CREATE INDEX " + WATCHED_PROGRAMS_TABLE_CHANNEL_ID_INDEX + " ON "
                     + WATCHED_PROGRAMS_TABLE + "(" + WatchedPrograms.COLUMN_CHANNEL_ID + ");");
@@ -1065,19 +1072,19 @@ public class TvProvider extends ContentProvider {
             if (oldVersion <= 34) {
                 if (!getColumnNames(db, PROGRAMS_TABLE).contains(PROGRAMS_COLUMN_SERIES_ID)) {
                     db.execSQL("ALTER TABLE " + PROGRAMS_TABLE + " ADD "
-                            + PROGRAMS_COLUMN_SERIES_ID+ " TEXT;");
+                            + PROGRAMS_COLUMN_SERIES_ID + " TEXT;");
                 }
                 if (!getColumnNames(db, RECORDED_PROGRAMS_TABLE)
                         .contains(PROGRAMS_COLUMN_SERIES_ID)) {
                     db.execSQL("ALTER TABLE " + RECORDED_PROGRAMS_TABLE + " ADD "
-                            + PROGRAMS_COLUMN_SERIES_ID+ " TEXT;");
+                            + PROGRAMS_COLUMN_SERIES_ID + " TEXT;");
                 }
             }
             if (oldVersion <= 35) {
                 if (!getColumnNames(db, CHANNELS_TABLE)
                         .contains(Channels.COLUMN_GLOBAL_CONTENT_ID)) {
                     db.execSQL("ALTER TABLE " + CHANNELS_TABLE + " ADD "
-                            + Channels.COLUMN_GLOBAL_CONTENT_ID+ " TEXT;");
+                            + Channels.COLUMN_GLOBAL_CONTENT_ID + " TEXT;");
                 }
                 if (!getColumnNames(db, PROGRAMS_TABLE)
                         .contains(Programs.COLUMN_EVENT_ID)) {
@@ -1112,15 +1119,15 @@ public class TvProvider extends ContentProvider {
             }
             if (oldVersion <= 36) {
                 db.execSQL("ALTER TABLE " + CHANNELS_TABLE + " ADD "
-                           + Channels.COLUMN_REMOTE_CONTROL_KEY_PRESET_NUMBER + " INTEGER;");
+                        + Channels.COLUMN_REMOTE_CONTROL_KEY_PRESET_NUMBER + " INTEGER;");
                 db.execSQL("ALTER TABLE " + CHANNELS_TABLE + " ADD "
-                           + Channels.COLUMN_SCRAMBLED + " INTEGER NOT NULL DEFAULT 0;");
+                        + Channels.COLUMN_SCRAMBLED + " INTEGER NOT NULL DEFAULT 0;");
                 db.execSQL("ALTER TABLE " + CHANNELS_TABLE + " ADD "
-                           + Channels.COLUMN_VIDEO_RESOLUTION + " TEXT;");
+                        + Channels.COLUMN_VIDEO_RESOLUTION + " TEXT;");
                 db.execSQL("ALTER TABLE " + CHANNELS_TABLE + " ADD "
-                           + Channels.COLUMN_CHANNEL_LIST_ID + " TEXT;");
+                        + Channels.COLUMN_CHANNEL_LIST_ID + " TEXT;");
                 db.execSQL("ALTER TABLE " + CHANNELS_TABLE + " ADD "
-                           + Channels.COLUMN_BROADCAST_GENRE + " TEXT;");
+                        + Channels.COLUMN_BROADCAST_GENRE + " TEXT;");
             }
             if (oldVersion <= 37) {
                 if (!getColumnNames(db, PREVIEW_PROGRAMS_TABLE)
@@ -1462,14 +1469,14 @@ public class TvProvider extends ContentProvider {
                     sBlockedPackages.put(packageNameToBlock, true);
                     if (sBlockedPackagesSharedPreference.edit().putStringSet(
                             SHARED_PREF_BLOCKED_PACKAGES_KEY, sBlockedPackages.keySet()).commit()) {
-                        String[] channelSelectionArgs = new String[] {
-                                packageNameToBlock, Channels.TYPE_PREVIEW };
+                        String[] channelSelectionArgs = new String[]{
+                                packageNameToBlock, Channels.TYPE_PREVIEW};
                         delete(TvContract.Channels.CONTENT_URI,
                                 Channels.COLUMN_PACKAGE_NAME + "=? AND "
                                         + Channels.COLUMN_TYPE + "=?",
                                 channelSelectionArgs);
-                        String[] programsSelectionArgs = new String[] {
-                                packageNameToBlock };
+                        String[] programsSelectionArgs = new String[]{
+                                packageNameToBlock};
                         delete(TvContract.PreviewPrograms.CONTENT_URI,
                                 PreviewPrograms.COLUMN_PACKAGE_NAME + "=?", programsSelectionArgs);
                         delete(TvContract.WatchNextPrograms.CONTENT_URI,
@@ -1480,7 +1487,8 @@ public class TvProvider extends ContentProvider {
                     } else {
                         Log.e(TAG, "Blocking package " + packageNameToBlock + " failed");
                         sBlockedPackages.remove(packageNameToBlock);
-                        blockPackageResult.putInt(TvContract.EXTRA_RESULT_CODE, TvContract.RESULT_ERROR_IO);
+                        blockPackageResult.putInt(TvContract.EXTRA_RESULT_CODE,
+                                TvContract.RESULT_ERROR_IO);
                     }
                 } else {
                     blockPackageResult.putInt(
@@ -1613,9 +1621,11 @@ public class TvProvider extends ContentProvider {
                         && Channels.TYPE_PREVIEW.equals(values.get(Channels.COLUMN_TYPE))) {
                     values.put(Channels.COLUMN_INPUT_ID, EMPTY_STRING);
                 }
+                packVirtualColumnsForChannels(values, null);
                 filterContentValues(values, sChannelProjectionMap);
                 return insertChannel(uri, values);
             case MATCH_PROGRAM:
+                packVirtualColumnsForPrograms(values, null);
                 filterContentValues(values, sProgramProjectionMap);
                 return insertProgram(uri, values);
             case MATCH_WATCHED_PROGRAM:
@@ -1861,6 +1871,11 @@ public class TvProvider extends ContentProvider {
         blockIllegalAccessToIdAndPackageName(uri, values);
         boolean containImmutableColumn = false;
         if (params.getTables().equals(CHANNELS_TABLE)) {
+            if (containsPredefinedInternalProviderForChannels(values)) {
+                byte[] blob = getOldBlob(uri, Channels.COLUMN_INTERNAL_PROVIDER_DATA, selection,
+                        selectionArgs);
+                packVirtualColumnsForChannels(values, blob);
+            }
             filterContentValues(values, sChannelProjectionMap);
             containImmutableColumn = disallowModifyChannelType(values, params);
             if (containImmutableColumn && sUriMatcher.match(uri) != MATCH_CHANNEL_ID) {
@@ -1869,6 +1884,11 @@ public class TvProvider extends ContentProvider {
             }
             blockIllegalAccessToChannelsSystemColumns(values);
         } else if (params.getTables().equals(PROGRAMS_TABLE)) {
+            if (containsPredefinedInternalProviderForPrograms(values)) {
+                byte[] blob = getOldBlob(uri, Programs.COLUMN_INTERNAL_PROVIDER_DATA, selection,
+                        selectionArgs);
+                packVirtualColumnsForPrograms(values, blob);
+            }
             filterContentValues(values, sProgramProjectionMap);
             checkAndConvertGenre(values);
             checkAndConvertDeprecatedColumns(values);
@@ -1945,11 +1965,11 @@ public class TvProvider extends ContentProvider {
 
     private static void updateProjectionMap(SQLiteDatabase db, String tableName,
             Map<String, String> projectionMap) {
-            for (String columnName : getColumnNames(db, tableName)) {
-                if (!projectionMap.containsKey(columnName)) {
-                    projectionMap.put(columnName, tableName + '.' + columnName);
-                }
+        for (String columnName : getColumnNames(db, tableName)) {
+            if (!projectionMap.containsKey(columnName)) {
+                projectionMap.put(columnName, tableName + '.' + columnName);
             }
+        }
     }
 
     private static List<String> getColumnNames(SQLiteDatabase db, String tableName) {
@@ -2061,8 +2081,8 @@ public class TvProvider extends ContentProvider {
                     params.setTables(CHANNELS_TABLE_INNER_JOIN_PROGRAMS_TABLE);
                     String curTime = String.valueOf(System.currentTimeMillis());
                     params.appendWhere("LIKE(?, " + Programs.COLUMN_CANONICAL_GENRE + ") AND "
-                            + Programs.COLUMN_START_TIME_UTC_MILLIS + "<=? AND "
-                            + Programs.COLUMN_END_TIME_UTC_MILLIS + ">=?",
+                                    + Programs.COLUMN_START_TIME_UTC_MILLIS + "<=? AND "
+                                    + Programs.COLUMN_END_TIME_UTC_MILLIS + ">=?",
                             "%" + genre + "%", curTime, curTime);
                 }
                 String inputId = uri.getQueryParameter(TvContract.PARAM_INPUT);
@@ -2098,7 +2118,7 @@ public class TvProvider extends ContentProvider {
                     String startTime = String.valueOf(Long.parseLong(paramStartTime));
                     String endTime = String.valueOf(Long.parseLong(paramEndTime));
                     params.appendWhere(Programs.COLUMN_START_TIME_UTC_MILLIS + "<=? AND "
-                            + Programs.COLUMN_END_TIME_UTC_MILLIS + ">=? AND ?<=?", endTime,
+                                    + Programs.COLUMN_END_TIME_UTC_MILLIS + ">=? AND ?<=?", endTime,
                             startTime, startTime, endTime);
                 }
                 break;
@@ -2168,7 +2188,7 @@ public class TvProvider extends ContentProvider {
             throws IllegalArgumentException {
         String defaultValueString = " DEFAULT ";
         switch (dataType.toLowerCase(Locale.ENGLISH)) {
-	    case "integer":
+            case "integer":
                 return defaultValueString + Integer.parseInt(defaultValue);
             case "real":
                 return defaultValueString + Double.parseDouble(defaultValue);
@@ -2311,7 +2331,7 @@ public class TvProvider extends ContentProvider {
                         mSharingUsersContext.keySet());
                 if (!mSharingUsersContextKeys.equals(profiles)) {
                     // Removing user profiles from map that are removed in the system
-                    for (UserHandle userProfile: mSharingUsersContextKeys) {
+                    for (UserHandle userProfile : mSharingUsersContextKeys) {
                         if (!profiles.contains(userProfile)) {
                             mSharingUsersContext.remove(userProfile);
                         }
@@ -2409,7 +2429,7 @@ public class TvProvider extends ContentProvider {
         }
         if (values.containsKey(BaseTvColumns.COLUMN_PACKAGE_NAME)
                 && !callerHasAccessAllEpgDataPermission() && !TextUtils.equals(values.getAsString(
-                        BaseTvColumns.COLUMN_PACKAGE_NAME), getCallingPackage_())) {
+                BaseTvColumns.COLUMN_PACKAGE_NAME), getCallingPackage_())) {
             throw new SecurityException("Not allowed to change package name.");
         }
     }
@@ -2440,7 +2460,7 @@ public class TvProvider extends ContentProvider {
         if (sBlockedPackages.containsKey(callingPackageName)) {
             throw new SecurityException(
                     "Not allowed to access " + TvContract.AUTHORITY + ", "
-                    + callingPackageName + " is blocked");
+                            + callingPackageName + " is blocked");
         }
     }
 
@@ -2492,7 +2512,7 @@ public class TvProvider extends ContentProvider {
         // We don't write the database here.
         SQLiteDatabase db = mOpenHelper.getReadableDatabase();
         if (mode.equals("r")) {
-            String sql = queryBuilder.buildQuery(new String[] { CHANNELS_COLUMN_LOGO },
+            String sql = queryBuilder.buildQuery(new String[]{CHANNELS_COLUMN_LOGO},
                     params.getSelection(), null, null, null, null);
             ParcelFileDescriptor fd = DatabaseUtils.blobFileDescriptorForQuery(
                     db, sql, params.getSelectionArgs());
@@ -2501,7 +2521,7 @@ public class TvProvider extends ContentProvider {
             }
             return fd;
         } else {
-            try (Cursor cursor = queryBuilder.query(db, new String[] { Channels._ID },
+            try (Cursor cursor = queryBuilder.query(db, new String[]{Channels._ID},
                     params.getSelection(), params.getSelectionArgs(), null, null, null)) {
                 if (cursor.getCount() < 1) {
                     // Fails early if corresponding channel does not exist.
@@ -2606,6 +2626,148 @@ public class TvProvider extends ContentProvider {
     private void deleteUnconsolidatedWatchedProgramsRows() {
         SQLiteDatabase db = mOpenHelper.getWritableDatabase();
         db.delete(WATCHED_PROGRAMS_TABLE, WATCHED_PROGRAMS_COLUMN_CONSOLIDATED + "=0", null);
+    }
+
+    /**
+     * Intercepts channel table internal_provider_data keys and packs them into a JSON blob.
+     *
+     * @param values       The incoming content values from insert/update.
+     * @param originalBlob The existing blob data (needed for updates to preserve other keys).
+     */
+    private void packVirtualColumnsForChannels(ContentValues values, byte[] originalBlob) {
+        if (!containsPredefinedInternalProviderForChannels(values)) {
+            return;
+        }
+        try {
+            // Load existing JSON (if any) to prevent overwriting other data
+            JSONObject json;
+            if (originalBlob != null) {
+                json = new JSONObject(new String(originalBlob, StandardCharsets.UTF_8));
+            } else if (values.containsKey(Channels.COLUMN_INTERNAL_PROVIDER_DATA)) {
+                // If the update/insert itself contains a blob, use the original blob
+                byte[] newBlob = values.getAsByteArray(Channels.COLUMN_INTERNAL_PROVIDER_DATA);
+                json = (newBlob != null) ? new JSONObject(
+                        new String(newBlob, StandardCharsets.UTF_8)) : new JSONObject();
+            } else {
+                json = new JSONObject();
+            }
+            // Insert values to the existing or the new Json object
+            insertIntegerValueToJson(Channels.INTERNAL_PROVIDER_DATA_KEY_CHANNEL_OPERATION_STATUS,
+                    values, json);
+            insertIntegerValueToJson(Channels.INTERNAL_PROVIDER_DATA_KEY_DIRECT_TUNE_FREQUENCY,
+                    values, json);
+            insertIntegerValueToJson(Channels.INTERNAL_PROVIDER_DATA_KEY_DIRECT_TUNE_NUM, values,
+                    json);
+            insertStringValueToJson(Channels.INTERNAL_PROVIDER_DATA_KEY_CHANNEL_FUTURE_RATING,
+                    values, json);
+            insertIntegerValueToJson(Channels.INTERNAL_PROVIDER_DATA_KEY_TKGS_CATEGORY_MASK, values,
+                    json);
+            // Remove all virtual column keys from values
+            values.remove(Channels.INTERNAL_PROVIDER_DATA_KEY_CHANNEL_OPERATION_STATUS);
+            values.remove(Channels.INTERNAL_PROVIDER_DATA_KEY_DIRECT_TUNE_FREQUENCY);
+            values.remove(Channels.INTERNAL_PROVIDER_DATA_KEY_DIRECT_TUNE_NUM);
+            values.remove(Channels.INTERNAL_PROVIDER_DATA_KEY_CHANNEL_FUTURE_RATING);
+            values.remove(Channels.INTERNAL_PROVIDER_DATA_KEY_TKGS_CATEGORY_MASK);
+            // Put the constructed json object to internal provider column
+            values.put(Channels.COLUMN_INTERNAL_PROVIDER_DATA,
+                    json.toString().getBytes(StandardCharsets.UTF_8));
+        } catch (JSONException e) {
+            Log.e(TAG, "Failed to insert/update internal provider data in channels", e);
+        }
+    }
+
+    /**
+     * Intercepts program table internal_provider_data keys and packs them into a JSON blob.
+     *
+     * @param values       The incoming content values from insert/update.
+     * @param originalBlob The existing blob data (needed for updates to preserve other keys).
+     */
+    private void packVirtualColumnsForPrograms(ContentValues values, byte[] originalBlob) {
+        if (!containsPredefinedInternalProviderForPrograms(values)) {
+            return;
+        }
+        try {
+            // Load existing JSON (if any) to prevent overwriting other data
+            JSONObject json;
+            if (originalBlob != null) {
+                json = new JSONObject(new String(originalBlob, StandardCharsets.UTF_8));
+            } else if (values.containsKey(Programs.COLUMN_INTERNAL_PROVIDER_DATA)) {
+                // If the update/insert itself contains a blob, use the original blob
+                byte[] newBlob = values.getAsByteArray(Programs.COLUMN_INTERNAL_PROVIDER_DATA);
+                json = (newBlob != null) ? new JSONObject(
+                        new String(newBlob, StandardCharsets.UTF_8)) : new JSONObject();
+            } else {
+                json = new JSONObject();
+            }
+            // Insert values to the existing or the new Json object
+            insertStringValueToJson(Programs.INTERNAL_PROVIDER_DATA_KEY_RRT5_DIMENSION, values,
+                    json);
+            insertStringValueToJson(Programs.INTERNAL_PROVIDER_DATA_KEY_RRT5_DIMENSION_VALUE,
+                    values, json);
+            // Remove all virtual column keys from values
+            values.remove(Programs.INTERNAL_PROVIDER_DATA_KEY_RRT5_DIMENSION);
+            values.remove(Programs.INTERNAL_PROVIDER_DATA_KEY_RRT5_DIMENSION_VALUE);
+            // Put the constructed json object to internal provider column
+            values.put(Programs.COLUMN_INTERNAL_PROVIDER_DATA,
+                    json.toString().getBytes(StandardCharsets.UTF_8));
+        } catch (JSONException e) {
+            Log.e(TAG, "Failed to insert/update internal provider data in programs", e);
+        }
+    }
+
+    private boolean containsPredefinedInternalProviderForChannels(ContentValues values) {
+        return values.containsKey(Channels.INTERNAL_PROVIDER_DATA_KEY_CHANNEL_OPERATION_STATUS)
+                || values.containsKey(Channels.INTERNAL_PROVIDER_DATA_KEY_DIRECT_TUNE_FREQUENCY)
+                || values.containsKey(Channels.INTERNAL_PROVIDER_DATA_KEY_DIRECT_TUNE_NUM)
+                || values.containsKey(Channels.INTERNAL_PROVIDER_DATA_KEY_CHANNEL_FUTURE_RATING)
+                || values.containsKey(Channels.INTERNAL_PROVIDER_DATA_KEY_TKGS_CATEGORY_MASK);
+    }
+
+    private boolean containsPredefinedInternalProviderForPrograms(ContentValues values) {
+        return values.containsKey(Programs.INTERNAL_PROVIDER_DATA_KEY_RRT5_DIMENSION)
+                || values.containsKey(Programs.INTERNAL_PROVIDER_DATA_KEY_RRT5_DIMENSION_VALUE);
+    }
+
+    private void insertIntegerValueToJson(String key, ContentValues values, JSONObject json)
+            throws JSONException {
+        if (values.containsKey(key)) {
+            json.put(key, values.getAsInteger(key));
+        }
+    }
+
+    private void insertStringValueToJson(String key, ContentValues values, JSONObject json)
+            throws JSONException {
+        if (values.containsKey(key)) {
+            json.put(key, values.getAsString(key));
+        }
+    }
+
+    /**
+     * Helper method to query the existing internal_provider_data blob from the database.
+     * This is critical for updates to ensure we don't wipe out existing JSON keys.
+     *
+     * @param uri           The URI of the row(s) being updated.
+     * @param column        The column name (Channels.COLUMN_INTERNAL_PROVIDER_DATA or Programs...).
+     * @param selection     The SQL selection string (e.g., "_id=?").
+     * @param selectionArgs The arguments for the selection.
+     * @return The byte array of the existing blob, or null if none exists.
+     */
+    private byte[] getOldBlob(Uri uri, String column, String selection, String[] selectionArgs) {
+        Cursor cursor = null;
+        try {
+            String[] projection = new String[]{ column };
+            cursor = query(uri, projection, selection, selectionArgs, null);
+            if (cursor != null && cursor.moveToFirst()) {
+                return cursor.getBlob(0);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to get old blob for " + column, e);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        return null;
     }
 
     @SuppressLint("HandlerLeak")
