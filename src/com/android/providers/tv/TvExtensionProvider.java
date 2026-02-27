@@ -53,7 +53,7 @@ public class TvExtensionProvider extends ContentProvider {
 
     // 3. Fixed Multi-Row
     private static final int OPERATORS = 800;
-    private static final int OPERATORS_ID = 801;
+    private static final int OPERATORS_BROADCAST_TUNER_TYPE = 801;
 
     private static final UriMatcher sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 
@@ -96,7 +96,7 @@ public class TvExtensionProvider extends ContentProvider {
 
         // content://.../tuner_operators/[row_id]
         sUriMatcher.addURI(TvExtensionContract.AUTHORITY, TvExtensionContract.
-            TUNER_OPERATOR_TABLE + "/#", OPERATORS_ID);
+            TUNER_OPERATOR_TABLE + "/#", OPERATORS_BROADCAST_TUNER_TYPE);
     }
 
     @Override
@@ -149,7 +149,7 @@ public class TvExtensionProvider extends ContentProvider {
 
             // --- Fixed Multi-Row ---
             case OPERATORS -> qb.setTables(TvExtensionContract.TUNER_OPERATOR_TABLE);
-            case OPERATORS_ID ->{
+            case OPERATORS_BROADCAST_TUNER_TYPE ->{
                 qb.setTables(TvExtensionContract.TUNER_OPERATOR_TABLE);
                 qb.appendWhere(TvExtensionContract.TunerOperators.COLUMN_TUNER_NAME + "="
                      + uri.getLastPathSegment());
@@ -240,7 +240,7 @@ public class TvExtensionProvider extends ContentProvider {
                 selectionArgs = DatabaseUtils.appendSelectionArgs(selectionArgs,
                                 new String[]{uri.getLastPathSegment()});
             }
-            case OPERATORS_ID -> {
+            case OPERATORS_BROADCAST_TUNER_TYPE -> {
                 tableName = TvExtensionContract.TUNER_OPERATOR_TABLE;
                 selection = TvExtensionContract.TunerOperators.COLUMN_TUNER_NAME + "=?";
                 selectionArgs = new String[]{uri.getLastPathSegment()};
@@ -327,7 +327,7 @@ public class TvExtensionProvider extends ContentProvider {
             case GENERAL, DIGITAL_TUNER, ANALOG_TUNER, DVB_EXT, INTERACTIVE, CC_STYLE_SETTINGS->
                 throw new UnsupportedOperationException("Cannot delete single-row settings."
                 + " Use update() to reset values.");
-            case OPERATORS, OPERATORS_ID->
+            case OPERATORS, OPERATORS_BROADCAST_TUNER_TYPE->
                 throw new UnsupportedOperationException("Cannot delete fixed-row settings."
                  + " Use update() to reset values.");
             default->
@@ -352,7 +352,7 @@ public class TvExtensionProvider extends ContentProvider {
                 "vnd.android.cursor.dir/vnd.android.media.tv.extensions.tuner_operators";
             case GLOBAL_KEY->
                 "vnd.android.cursor.item/vnd.android.media.tv.extensions.global_setting";
-            case OPERATORS_ID->
+            case OPERATORS_BROADCAST_TUNER_TYPE->
                 "vnd.android.cursor.item/vnd.android.media.tv.extensions.tuner_operators";
             case GENERAL->
                 "vnd.android.cursor.item/vnd.android.media.tv.extensions.general_setting";

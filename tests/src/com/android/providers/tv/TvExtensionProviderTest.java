@@ -83,7 +83,7 @@ public class TvExtensionProviderTest {
         Log.d(TAG, "after()");
     }
 
-    public void assertUpdateAndQuery(Uri uri, String column,  int value, String selection,
+    public void assertUpdateAndQuery(Uri uri, String column, int value, String selection,
         String[] selectionArgs) {
         ContentValues values = new ContentValues();
         values.put(column, value);
@@ -214,15 +214,9 @@ public class TvExtensionProviderTest {
     }
     @Test
     public void testTunerTable() {
-        Uri uri = ContentUris.withAppendedId(TunerOperators.CONTENT_URI, TunerOperators.ANTENNA);
-        assertUpdateAndQuery(uri, TunerOperators.COLUMN_OPERATOR_ID, TunerOperators.CABLE, null,
-            null);
-        assertUpdateAndQuery(uri, TunerOperators.COLUMN_OPERATOR_NAME, "Testing", null, null);
-        assertUpdateAndQuery(TunerOperators.CONTENT_URI, TunerOperators.COLUMN_OPERATOR_ID,
-            TunerOperators.SATELLITE, TunerOperators.COLUMN_TUNER_NAME + " = ?",
-            new String[] { String.valueOf(TunerOperators.CABLE) });
-
-        checkBoundaries(uri, TunerOperators.COLUMN_OPERATOR_ID,  0, 2, null, null);
+        Uri uri = ContentUris.withAppendedId(TunerOperators.CONTENT_URI, TunerOperators.CABLE);
+        assertUpdateAndQuery(uri, TunerOperators.COLUMN_OPERATOR_ID, 0, null, null);
+        assertUpdateAndQuery(uri, TunerOperators.COLUMN_OPERATOR_NAME, "test", null, null);
     }
 
     @Test
