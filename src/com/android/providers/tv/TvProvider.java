@@ -101,7 +101,7 @@ public class TvProvider extends ContentProvider {
     private static final boolean DEBUG = false;
     private static final String TAG = "TvProvider";
 
-    static final int DATABASE_VERSION = 40;
+    static final int DATABASE_VERSION = 41;
     static final String SHARED_PREF_BLOCKED_PACKAGES_KEY = "blocked_packages";
     static final String CHANNELS_TABLE = "channels";
     static final String PROGRAMS_TABLE = "programs";
@@ -263,6 +263,10 @@ public class TvProvider extends ContentProvider {
                 CHANNELS_TABLE + "." + Channels.COLUMN_BROADCAST_GENRE);
         sChannelProjectionMap.put(Channels.COLUMN_BROADCAST_VISIBILITY_TYPE,
                 CHANNELS_TABLE + "." + Channels.COLUMN_BROADCAST_VISIBILITY_TYPE);
+        sChannelProjectionMap.put(Channels.COLUMN_DIRECT_TUNE_FREQUENCY,
+                CHANNELS_TABLE + "." + Channels.COLUMN_DIRECT_TUNE_FREQUENCY);
+        sChannelProjectionMap.put(Channels.COLUMN_DIRECT_TUNE_NUM,
+                CHANNELS_TABLE + "." + Channels.COLUMN_DIRECT_TUNE_NUM);
 
         sProgramProjectionMap.clear();
         sProgramProjectionMap.put(Programs._ID, Programs._ID);
@@ -892,6 +896,8 @@ public class TvProvider extends ContentProvider {
                     + " INTEGER NOT NULL DEFAULT "
                     + Channels.BROADCAST_VISIBILITY_TYPE_VISIBLE
                     + ","
+                    + Channels.COLUMN_DIRECT_TUNE_FREQUENCY + " INTEGER,"
+                    + Channels.COLUMN_DIRECT_TUNE_NUM + " INTEGER,"
                     // Needed for foreign keys in other tables.
                     + "UNIQUE(" + Channels._ID + "," + Channels.COLUMN_PACKAGE_NAME + ")"
                     + ");");
@@ -1186,6 +1192,18 @@ public class TvProvider extends ContentProvider {
                             + " INTEGER NOT NULL DEFAULT "
                             + Channels.BROADCAST_VISIBILITY_TYPE_VISIBLE
                             + ";");
+                }
+            }
+            if (oldVersion <= 40) {
+                if (!getColumnNames(db, CHANNELS_TABLE)
+                        .contains(Channels.COLUMN_DIRECT_TUNE_FREQUENCY)) {
+                    db.execSQL("ALTER TABLE " + CHANNELS_TABLE + " ADD "
+                            + Channels.COLUMN_DIRECT_TUNE_FREQUENCY + " INTEGER;");
+                }
+                if (!getColumnNames(db, CHANNELS_TABLE)
+                        .contains(Channels.COLUMN_DIRECT_TUNE_NUM)) {
+                    db.execSQL("ALTER TABLE " + CHANNELS_TABLE + " ADD "
+                            + Channels.COLUMN_DIRECT_TUNE_NUM + " INTEGER;");
                 }
             }
             Log.i(TAG, "Upgrading from version " + oldVersion + " to " + newVersion + " is done.");
@@ -2654,18 +2672,12 @@ public class TvProvider extends ContentProvider {
             // Insert values to the existing or the new Json object
             insertIntegerValueToJson(Channels.INTERNAL_PROVIDER_DATA_KEY_CHANNEL_OPERATION_STATUS,
                     values, json);
-            insertIntegerValueToJson(Channels.INTERNAL_PROVIDER_DATA_KEY_DIRECT_TUNE_FREQUENCY,
-                    values, json);
-            insertIntegerValueToJson(Channels.INTERNAL_PROVIDER_DATA_KEY_DIRECT_TUNE_NUM, values,
-                    json);
             insertStringValueToJson(Channels.INTERNAL_PROVIDER_DATA_KEY_CHANNEL_FUTURE_RATING,
                     values, json);
             insertIntegerValueToJson(Channels.INTERNAL_PROVIDER_DATA_KEY_TKGS_CATEGORY_MASK, values,
                     json);
             // Remove all virtual column keys from values
             values.remove(Channels.INTERNAL_PROVIDER_DATA_KEY_CHANNEL_OPERATION_STATUS);
-            values.remove(Channels.INTERNAL_PROVIDER_DATA_KEY_DIRECT_TUNE_FREQUENCY);
-            values.remove(Channels.INTERNAL_PROVIDER_DATA_KEY_DIRECT_TUNE_NUM);
             values.remove(Channels.INTERNAL_PROVIDER_DATA_KEY_CHANNEL_FUTURE_RATING);
             values.remove(Channels.INTERNAL_PROVIDER_DATA_KEY_TKGS_CATEGORY_MASK);
             // Put the constructed json object to internal provider column
@@ -2717,8 +2729,6 @@ public class TvProvider extends ContentProvider {
 
     private boolean containsPredefinedInternalProviderForChannels(ContentValues values) {
         return values.containsKey(Channels.INTERNAL_PROVIDER_DATA_KEY_CHANNEL_OPERATION_STATUS)
-                || values.containsKey(Channels.INTERNAL_PROVIDER_DATA_KEY_DIRECT_TUNE_FREQUENCY)
-                || values.containsKey(Channels.INTERNAL_PROVIDER_DATA_KEY_DIRECT_TUNE_NUM)
                 || values.containsKey(Channels.INTERNAL_PROVIDER_DATA_KEY_CHANNEL_FUTURE_RATING)
                 || values.containsKey(Channels.INTERNAL_PROVIDER_DATA_KEY_TKGS_CATEGORY_MASK);
     }
